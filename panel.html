@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OCD Control Panel</title>
+<style>
+:root { --bg:#0b0f14; --fg:#e8eaed; --muted:#6b7280; --accent:#22d3ee; --accent-dim:#0891b2; --card:#111827; --border:#1f2937; --danger:#ef4444; --success:#22c55e; --warn:#f59e0b; }
+* { box-sizing:border-box; margin:0; padding:0; }
+body { font-family: system-ui, -apple-system, sans-serif; background:var(--bg); color:var(--fg); line-height:1.5; min-height:100vh; }
+header { position:sticky; top:0; z-index:10; background:rgba(11,15,20,0.95); backdrop-filter:blur(8px); border-bottom:1px solid var(--border); padding:12px 20px; display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+header h1 { font-size:1.25rem; font-weight:600; color:var(--accent); letter-spacing:0.5px; }
+header .conn { display:flex; align-items:center; gap:8px; flex:1; justify-content:flex-end; flex-wrap:wrap; }
+.input { background:var(--card); border:1px solid var(--border); color:var(--fg); padding:8px 12px; border-radius:6px; font-size:0.875rem; outline:none; width:100%; max-width:280px; }
+.input:focus { border-color:var(--accent); }
+.btn { background:var(--accent); color:#001014; border:none; padding:8px 16px; border-radius:6px; font-weight:600; cursor:pointer; font-size:0.875rem; transition:background 0.15s; }
+.btn:hover { background:var(--accent-dim); }
+.btn:disabled { opacity:0.5; cursor:not-allowed; }
+.btn.ghost { background:transparent; color:var(--fg); border:1px solid var(--border); }
+.btn.ghost:hover { background:var(--card); border-color:var(--accent); }
+.btn.danger { background:var(--danger); color:#fff; }
+.btn.success { background:var(--success); color:#052e16; }
+.status { display:flex; align-items:center; gap:6px; font-size:0.8rem; }
+.status-dot { width:8px; height:8px; border-radius:50%; background:var(--danger); }
+.status-dot.ok { background:var(--success); }
+main { padding:20px; max-width:1200px; margin:0 auto; }
+.grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(340px, 1fr)); gap:16px; }
+.card { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:16px; }
+.card h2 { font-size:0.95rem; font-weight:600; margin-bottom:12px; color:var(--accent); display:flex; align-items:center; gap:8px; }
+.card h2::before { content:""; width:4px; height:16px; background:var(--accent); border-radius:2px; }
+.row { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px; }
+.row > .btn { flex-shrink:0; }
+.row > .input { flex:1; min-width:140px; }
+.pre { background:#051014; border:1px solid var(--border); border-radius:6px; padding:12px; font-family:ui-monospace, monospace; font-size:0.75rem; max-height:300px; overflow:auto; white-space:pre-wrap; word-break:break-word; color:#94a3b8; }
+.pre.ok { color:var(--success); }
+.pre.err { color:var(--danger); }
+.list { list-style:none; }
+.list li { padding:8px 10px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:10px; font-size:0.85rem; }
+.list li:last-child { border-bottom:none; }
+.list .pkg { font-family:ui-monospace, monospace; color:var(--accent); flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.badge { font-size:0.7rem; padding:2px 6px; border-radius:4px; background:var(--border); color:var(--muted); }
+.badge.ok { background:rgba(34,197,94,0.15); color:var(--success); }
+.badge.warn { background:rgba(245,158,11,0.15); color:var(--warn); }
+.badge.err { background:rgba(239,68,68,0.15); color:var(--danger); }
+.tabs { display:flex; gap:4px; margin-bottom:12px; border-bottom:1px solid var(--border); padding-bottom:4px; }
+.tab { padding:6px 12px; font-size:0.8rem; color:var(--muted); cursor:pointer; border-radius:6px 6px 0 0; background:transparent; border:none; }
+.tab.active { color:var(--accent); background:rgba(34,211,238,0.1); }
+.tab-panel { display:none; }
+.tab-panel.active { display:block; animation:fade 0.15s; }
+@keyframes fade { from {opacity:0; transform:translateY(4px);} to {opacity:1; transform:none;} }
+.screenshot-box { text-align:center; }
+.screenshot-box img { max-width:100%; max-height:400px; border:1px solid var(--border); border-radius:8px; background:#051014; }
+.fs-tree { font-family:ui-monospace, monospace; font-size:0.75rem; }
+.fs-tree .dir { color:var(--accent); cursor:pointer; }
+.fs-tree .file { color:#94a3b8; }
+.fs-tree .dir::before { content:"📁 "; }
+.fs-tree .file::before { content:"📄 "; }
+.fs-tree li { padding:2px 0 2px 16px; }
+.modal { position:fixed; inset:0; background:rgba(0,0,0,0.7); display:flex; align-items:center; justify-content:center; z-index:100; display:none; }
+.modal.active { display:flex; }
+.modal-content { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:20px; width:90%; max-width:500px; max-height:80vh; overflow:auto; }
+.modal h3 { margin-bottom:16px; color:var(--accent); }
+.modal .row { margin-top:16px; justify-content:flex-end; }
+.toast { position:fixed; bottom:20px; right:20px; background:var(--card); border:1px solid var(--border); padding:12px 16px; border-radius:8px; z-index:200; display:none; animation:slide 0.2s; }
+.toast.show { display:block; }
+.toast.ok { border-left:4px solid var(--success); }
+.toast.err { border-left:4px solid var(--danger); }
+@keyframes slide { from {opacity:0; transform:translateY(20px);} to {opacity:1; transform:none;} }
+.device-info { display:grid; grid-template-columns:repeat(2, 1fr); gap:8px; font-size:0.85rem; }
+.device-info .label { color:var(--muted); }
+.device-info .value { font-family:ui-monospace, monospace; color:var(--fg); word-break:break-all; }
+@media (max-width: 600px) {
+  .device-info { grid-template-columns:1fr; }
+  header { flex-direction:column; align-items:stretch; }
+  header .conn { justify-content:stretch; }
+  .input { max-width:none; }
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>📱 OCD Control Panel</h1>
+  <div class="conn">
+    <input id="host" class="input" placeholder="Host (e.g. 192.168.1.50)" value="127.0.0.1">
+    <input id="port" class="input" placeholder="Port" value="18790" style="max-width:80px;">
+    <input id="token" class="input" placeholder="Bearer Token" type="password">
+    <button id="connectBtn" class="btn" onclick="testConnection()">Connect</button>
+    <span class="status"><span id="statusDot" class="status-dot"></span><span id="statusText">Disconnected</span></span>
+  </div>
+</header>
+
+<main>
+  <div class="grid">
+    <!-- Device Info -->
+    <div class="card">
+      <h2>Device Info</h2>
+      <button class="btn" onclick="loadDevice()">🔄 Refresh</button>
+      <div id="deviceInfo" class="device-info" style="margin-top:12px;"></div>
+    </div>
+
+    <!-- Apps -->
+    <div class="card">
+      <h2>Applications</h2>
+      <div class="row">
+        <input id="appFilter" class="input" placeholder="Filter packages..." onkeypress="if(event.key==='Enter') loadApps()">
+        <button class="btn" onclick="loadApps()">List</button>
+      </div>
+      <ul id="appList" class="list"></ul>
+    </div>
+
+    <!-- File System -->
+    <div class="card">
+      <h2>File System</h2>
+      <div class="row">
+        <input id="fsPath" class="input" placeholder="Path (e.g. /sdcard/Download)" value="/sdcard">
+        <button class="btn" onclick="listFs()">List</button>
+        <button class="btn ghost" onclick="navigateFs('..')">⬆ Up</button>
+      </div>
+      <div id="fsTree" class="fs-tree"></div>
+    </div>
+
+    <!-- Screenshot -->
+    <div class="card">
+      <h2>Screenshot</h2>
+      <button class="btn success" onclick="takeScreenshot()">📸 Capture</button>
+      <div id="screenshotBox" class="screenshot-box" style="margin-top:12px;"></div>
+    </div>
+
+    <!-- Input Control -->
+    <div class="card">
+      <h2>Input Control</h2>
+      <div class="tabs">
+        <button class="tab active" onclick="showTab('inputTap')">Tap</button>
+        <button class="tab" onclick="showTab('inputSwipe')">Swipe</button>
+        <button class="tab" onclick="showTab('inputText')">Text</button>
+        <button class="tab" onclick="showTab('inputKey')">Key</button>
+      </div>
+      <div id="inputTap" class="tab-panel active">
+        <div class="row"><input id="tapX" class="input" placeholder="X" type="number"><input id="tapY" class="input" placeholder="Y" type="number"></div>
+        <button class="btn" onclick="sendInput('tap')">Tap</button>
+      </div>
+      <div id="inputSwipe" class="tab-panel">
+        <div class="row"><input id="swipeX1" class="input" placeholder="X1" type="number"><input id="swipeY1" class="input" placeholder="Y1" type="number"></div>
+        <div class="row"><input id="swipeX2" class="input" placeholder="X2" type="number"><input id="swipeY2" class="input" placeholder="Y2" type="number"></div>
+        <div class="row"><input id="swipeDur" class="input" placeholder="Duration (ms)" type="number" value="300"></div>
+        <button class="btn" onclick="sendInput('swipe')">Swipe</button>
+      </div>
+      <div id="inputText" class="tab-panel">
+        <input id="inputTextVal" class="input" placeholder="Text to input" style="margin-bottom:8px;">
+        <button class="btn" onclick="sendInput('text')">Send Text</button>
+      </div>
+      <div id="inputKey" class="tab-panel">
+        <input id="keyCode" class="input" placeholder="Keycode (e.g. 3=HOME, 4=BACK, 66=ENTER)" type="number" style="margin-bottom:8px;">
+        <button class="btn" onclick="sendInput('key')">Send Key</button>
+        <div style="margin-top:8px; font-size:0.75rem; color:var(--muted);">
+          Common: 3=HOME, 4=BACK, 24=VOL_UP, 25=VOL_DOWN, 26=POWER, 66=ENTER, 67=DEL, 123=MOVE_END
+        </div>
+      </div>
+    </div>
+
+    <!-- Communications -->
+    <div class="card">
+      <h2>Communications</h2>
+      <div class="tabs">
+        <button class="tab active" onclick="showTab('commSms')">SMS</button>
+        <button class="tab" onclick="showTab('commCall')">Call</button>
+        <button class="tab" onclick="showTab('commNotif')">Notifications</button>
+      </div>
+      <div id="commSms" class="tab-panel active">
+        <div class="row"><input id="smsTo" class="input" placeholder="Phone number"><input id="smsBody" class="input" placeholder="Message"></div>
+        <button class="btn" onclick="sendSms()">Send SMS</button>
+      </div>
+      <div id="commCall" class="tab-panel">
+        <input id="callNumber" class="input" placeholder="Phone number" style="margin-bottom:8px;">
+        <button class="btn success" onclick="makeCall()">📞 Call</button>
+      </div>
+      <div id="commNotif" class="tab-panel">
+        <button class="btn" onclick="loadNotifications()">🔔 Load Notifications</button>
+        <pre id="notifOutput" class="pre" style="margin-top:10px;"></pre>
+      </div>
+    </div>
+
+    <!-- USB / Storage -->
+    <div class="card">
+      <h2>USB / Storage</h2>
+      <button class="btn" onclick="loadUsb()">🔄 Refresh</button>
+      <pre id="usbOutput" class="pre" style="margin-top:10px;"></pre>
+    </div>
+
+    <!-- Launcher / Shortcuts -->
+    <div class="card">
+      <h2>Launcher</h2>
+      <div class="tabs">
+        <button class="tab active" onclick="showTab('launcherHomescreen')">Homescreen</button>
+        <button class="tab" onclick="showTab('launcherShortcut')">Create Shortcut</button>
+      </div>
+      <div id="launcherHomescreen" class="tab-panel active">
+        <button class="btn" onclick="loadHomescreen()">📋 Load Layout</button>
+        <pre id="homescreenOutput" class="pre" style="margin-top:10px;"></pre>
+      </div>
+      <div id="launcherShortcut" class="tab-panel">
+        <div class="row"><input id="scName" class="input" placeholder="Name"><input id="scUrl" class="input" placeholder="URL (http://... or https://...)"></div>
+        <input id="scIcon" class="input" placeholder="Icon path (optional)" style="margin:8px 0;">
+        <button class="btn" onclick="createShortcut()">➕ Create</button>
+      </div>
+    </div>
+
+    <!-- Shell -->
+    <div class="card">
+      <h2>Raw Shell</h2>
+      <div class="row">
+        <input id="shellCmd" class="input" placeholder="Command (e.g. pm, am, getprop, dumpsys)">
+        <input id="shellArgs" class="input" placeholder="Args (space-separated)">
+      </div>
+      <button class="btn" onclick="runShell()">Execute</button>
+      <pre id="shellOutput" class="pre" style="margin-top:10px;"></pre>
+    </div>
+
+    <!-- Debug / Full Dump -->
+    <div class="card">
+      <h2>🔧 Debug & Full Dump</h2>
+      <div class="tabs">
+        <button class="tab active" onclick="showTab('debugDump')">Full Dump</button>
+        <button class="tab" onclick="showTab('debugImei')">IMEI / MEID</button>
+        <button class="tab" onclick="showTab('debugLogcat')">Logcat</button>
+        <button class="tab" onclick="showTab('debugProcesses')">Processes</button>
+        <button class="tab" onclick="showTab('debugNetstat')">Netstat</button>
+        <button class="tab" onclick="showTab('debugLsof')">Open Files</button>
+      </div>
+      <div id="debugDump" class="tab-panel active">
+        <button class="btn success" onclick="loadFullDump()">📦 Generate Full Device Dump</button>
+        <button class="btn ghost" onclick="downloadDump()">⬇️ Download JSON</button>
+        <pre id="dumpOutput" class="pre" style="margin-top:10px;"></pre>
+      </div>
+      <div id="debugImei" class="tab-panel">
+        <button class="btn" onclick="loadImei()">🔍 Get IMEI/MEID</button>
+        <pre id="imeiOutput" class="pre" style="margin-top:10px;"></pre>
+      </div>
+      <div id="debugLogcat" class="tab-panel">
+        <div class="row">
+          <input id="logcatLines" class="input" placeholder="Lines" value="200" style="max-width:80px;">
+          <input id="logcatFilter" class="input" placeholder="Filter (e.g. *:E, MyTag:V)">
+        </div>
+        <button class="btn" onclick="loadLogcat()">📋 Fetch Logcat</button>
+        <pre id="logcatOutput" class="pre" style="margin-top:10px;"></pre>
+      </div>
+      <div id="debugProcesses" class="tab-panel">
+        <button class="btn" onclick="loadProcesses()">📋 List Processes</button>
+        <pre id="processesOutput" class="pre" style="margin-top:10px;"></pre>
+      </div>
+      <div id="debugNetstat" class="tab-panel">
+        <button class="btn" onclick="loadNetstat()">🌐 Network Connections</button>
+        <pre id="netstatOutput" class="pre" style="margin-top:10px;"></pre>
+      </div>
+      <div id="debugLsof" class="tab-panel">
+        <button class="btn" onclick="loadLsof()">📂 Open Files (lsof)</button>
+        <pre id="lsofOutput" class="pre" style="margin-top:10px;"></pre>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = {
+  base: '',
+  token: '',
+  async request(path, options = {}) {
+    const url = `${this.base}${path}`;
+    const headers = {
+      'Content-Type': 'application/json',
+      'X-OCD-Token': this.token
+    };
+    const res = await fetch(url, { ...options, headers });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    return data;
+  },
+  get(path) { return this.request(path); },
+  post(path, body) { return this.request(path, { method: 'POST', body: JSON.stringify(body) }); }
+};
+
+function setStatus(ok, msg) {
+  document.getElementById('statusDot').classList.toggle('ok', ok);
+  document.getElementById('statusText').textContent = msg;
+}
+
+function toast(msg, ok = true) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + (ok ? 'ok' : 'err');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+function showTab(id) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById(id).classList.add('active');
+}
+
+async function testConnection() {
+  const host = document.getElementById('host').value.trim();
+  const port = document.getElementById('port').value.trim();
+  const token = document.getElementById('token').value.trim();
+  if (!host || !port || !token) return toast('Fill all fields', false);
+  API.base = `http://${host}:${port}`;
+  API.token = token;
+  try {
+    const data = await API.get('/health');
+    setStatus(true, `Connected • ${data.android} • ${data.root}`);
+    toast('Connected successfully');
+    loadDevice();
+  } catch (e) {
+    setStatus(false, 'Failed');
+    toast(e.message, false);
+  }
+}
+
+function renderDevice(info) {
+  const el = document.getElementById('deviceInfo');
+  el.innerhtml = '';
+  const fields = [
+    ['Model', info.model], ['Brand', info.brand], ['Android', info.android],
+    ['SDK', info.sdk], ['Serial', info.serial], ['Root', info.root],
+    ['ADB', info.adb || 'none'], ['Apps', info.installedApps]
+  ];
+  fields.forEach(([label, value]) => {
+    el.innerHTML += `<div class="label">${label}</div><div class="value">${value || '—'}</div>`;
+  });
+}
+
+async function loadDevice() {
+  try {
+    const data = await API.get('/device');
+    renderDevice(data.device);
+  } catch (e) { toast(e.message, false); }
+}
+
+async function loadApps() {
+  const filter = document.getElementById('appFilter').value.trim();
+  try {
+    const data = await API.get(`/apps${filter ? '?filter=' + encodeURIComponent(filter) : ''}`);
+    const list = document.getElementById('appList');
+    list.innerHTML = data.packages.map(pkg => `
+      <li>
+        <span class="pkg">${pkg}</span>
+        <div class="row" style="margin:0;">
+          <button class="btn ghost" onclick="launchApp('${pkg}')" style="padding:4px 8px;font-size:0.75rem;">Launch</button>
+          <button class="btn ghost danger" onclick="stopApp('${pkg}')" style="padding:4px 8px;font-size:0.75rem;">Stop</button>
+          <button class="btn ghost danger" onclick="uninstallApp('${pkg}')" style="padding:4px 8px;font-size:0.75rem;">Uninstall</button>
+        </div>
+      </li>
+    `).join('');
+  } catch (e) { toast(e.message, false); }
+}
+
+async function launchApp(pkg) {
+  try {
+    await API.post('/app/launch', { pkg });
+    toast(`Launched ${pkg}`);
+  } catch (e) { toast(e.message, false); }
+}
+async function stopApp(pkg) {
+  try {
+    await API.post('/app/stop', { pkg });
+    toast(`Stopped ${pkg}`);
+  } catch (e) { toast(e.message, false); }
+}
+async function uninstallApp(pkg) {
+  if (!confirm(`Uninstall ${pkg}?`)) return;
+  try {
+    await API.post('/app/uninstall', { pkg });
+    toast(`Uninstalled ${pkg}`);
+    loadApps();
+  } catch (e) { toast(e.message, false); }
+}
+
+let currentFsPath = '/sdcard';
+async function listFs() {
+  const path = document.getElementById('fsPath').value.trim() || currentFsPath;
+  currentFsPath = path;
+  try {
+    const data = await API.get('/fs/list?path=' + encodeURIComponent(path));
+    const lines = data.listing.trim().split('\n').slice(1);
+    const tree = document.getElementById('fsTree');
+    tree.innerHTML = '<ul>' + lines.map(line => {
+      const parts = line.trim().split(/\s+/);
+      if (parts.length < 9) return '';
+      const perms = parts[0];
+      const name = parts.slice(8).join(' ');
+      const isDir = perms.startsWith('d');
+      return `<li class="${isDir ? 'dir' : 'file'}"${isDir ? ` onclick="navigateFs('${path.replace(/\/$/, '')}/${name}')"` : ''}>${name}</li>`;
+    }).join('') + '</ul>';
+  } catch (e) { toast(e.message, false); }
+}
+function navigateFs(path) {
+  document.getElementById('fsPath').value = path;
+  listFs();
+}
+
+async function takeScreenshot() {
+  try {
+    const data = await API.post('/screenshot', { path: `Pictures/ocd-panel-${Date.now()}.png` });
+    const box = document.getElementById('screenshotBox');
+    box.innerHTML = `<img src="${API.base}/fs/read?path=${encodeURIComponent(data.path)}" alt="Screenshot">`;
+    toast('Screenshot captured');
+  } catch (e) { toast(e.message, false); }
+}
+
+async function sendInput(type) {
+  let body = {};
+  if (type === 'tap') { body.x = +document.getElementById('tapX').value; body.y = +document.getElementById('tapY').value; }
+  else if (type === 'swipe') { body.x1 = +document.getElementById('swipeX1').value; body.y1 = +document.getElementById('swipeY1').value; body.x2 = +document.getElementById('swipeX2').value; body.y2 = +document.getElementById('swipeY2').value; body.duration = +document.getElementById('swipeDur').value; }
+  else if (type === 'text') { body.text = document.getElementById('inputTextVal').value; }
+  else if (type === 'key') { body.key = +document.getElementById('keyCode').value; }
+  try {
+    await API.post('/input/' + type, body);
+    toast(`Input ${type} sent`);
+  } catch (e) { toast(e.message, false); }
+}
+
+async function sendSms() {
+  const to = document.getElementById('smsTo').value.trim();
+  const body = document.getElementById('smsBody').value.trim();
+  if (!to || !body) return toast('Fill both fields', false);
+  try {
+    await API.post('/sms', { to, body });
+    toast('SMS sent');
+  } catch (e) { toast(e.message, false); }
+}
+
+async function makeCall() {
+  const number = document.getElementById('callNumber').value.trim();
+  if (!number) return toast('Enter number', false);
+  try {
+    await API.post('/call', { number });
+    toast('Call initiated');
+  } catch (e) { toast(e.message, false); }
+}
+
+async function loadNotifications() {
+  try {
+    const data = await API.get('/notifications');
+    document.getElementById('notifOutput').textContent = JSON.stringify(data, null, 2);
+  } catch (e) { toast(e.message, false); }
+}
+
+async function loadUsb() {
+  try {
+    const data = await API.get('/usb');
+    document.getElementById('usbOutput').textContent = JSON.stringify(data, null, 2);
+  } catch (e) { toast(e.message, false); }
+}
+
+async function loadHomescreen() {
+  try {
+    const data = await API.get('/launcher');
+    document.getElementById('homescreenOutput').textContent = JSON.stringify(data, null, 2);
+  } catch (e) { toast(e.message, false); }
+}
+
+async function createShortcut() {
+  const name = document.getElementById('scName').value.trim();
+  const url = document.getElementById('scUrl').value.trim();
+  const icon = document.getElementById('scIcon').value.trim();
+  if (!name || !url) return toast('Name and URL required', false);
+  try {
+    await API.post('/shortcut', { name, url, icon });
+    toast('Shortcut created');
+  } catch (e) { toast(e.message, false); }
+}
+
+async function runShell() {
+  const cmd = document.getElementById('shellCmd').value.trim();
+  const args = document.getElementById('shellArgs').value.trim().split(/\s+/).filter(Boolean);
+  if (!cmd) return toast('Enter command', false);
+  try {
+    const data = await API.post('/shell', { cmd, args });
+    document.getElementById('shellOutput').textContent = JSON.stringify(data, null, 2);
+  } catch (e) { toast(e.message, false); }
+}
+
+let lastDump = null;
+async function loadFullDump() {
+  try {
+    const data = await API.get('/debug/dump');
+    lastDump = data.dump;
+    document.getElementById('dumpOutput').textContent = JSON.stringify(data.dump, null, 2);
+    toast('Full dump loaded');
+  } catch (e) { toast(e.message, false); }
+}
+
+function downloadDump() {
+  if (!lastDump) return toast('No dump loaded', false);
+  const blob = new Blob([JSON.stringify(lastDump, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `device-dump-${Date.now()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('Download started');
+}
+
+async function loadImei() {
+  try {
+    const data = await API.get('/debug/imei');
+    document.getElementById('imeiOutput').textContent = JSON.stringify(data.imei, null, 2);
+    // Highlight found IMEIs
+    const imei = data.imei;
+    const found = [];
+    for (const [k, v] of Object.entries(imei)) {
+      if (v && typeof v === 'string' && v.length >= 14 && /^\d+$/.test(v)) found.push({ source: k, value: v });
+    }
+    if (found.length) toast(`Found ${found.length} potential IMEI(s)`, true);
+    else toast('No IMEI found (may need root/ADB)', false);
+  } catch (e) { toast(e.message, false); }
+}
+
+async function loadLogcat() {
+  const lines = document.getElementById('logcatLines').value;
+  const filter = document.getElementById('logcatFilter').value;
+  let url = `/debug/logcat?lines=${lines}`;
+  if (filter) url += `&filter=${encodeURIComponent(filter)}`;
+  try {
+    const data = await API.get(url);
+    document.getElementById('logcatOutput').textContent = data.logcat || data.stderr || 'No output';
+  } catch (e) { toast(e.message, false); }
+}
+
+async function loadProcesses() {
+  try {
+    const data = await API.get('/debug/processes');
+    document.getElementById('processesOutput').textContent = data.processes || 'No output';
+  } catch (e) { toast(e.message, false); }
+}
+
+async function loadNetstat() {
+  try {
+    const data = await API.get('/debug/netstat');
+    document.getElementById('netstatOutput').textContent = data.netstat || 'No output';
+  } catch (e) { toast(e.message, false); }
+}
+
+async function loadLsof() {
+  try {
+    const data = await API.get('/debug/lsof');
+    document.getElementById('lsofOutput').textContent = data.lsof || 'No output';
+  } catch (e) { toast(e.message, false); }
+}
+
+// Auto-load on Enter in token field
+document.getElementById('token').addEventListener('keypress', e => { if (e.key === 'Enter') testConnection(); });
+
+// Save connection to localStorage
+window.addEventListener('beforeunload', () => {
+  localStorage.setItem('ocd_host', document.getElementById('host').value);
+  localStorage.setItem('ocd_port', document.getElementById('port').value);
+});
+window.addEventListener('load', () => {
+  document.getElementById('host').value = localStorage.getItem('ocd_host') || '127.0.0.1';
+  document.getElementById('port').value = localStorage.getItem('ocd_port') || '18790';
+});
+</script>
+</body>
+</html>
