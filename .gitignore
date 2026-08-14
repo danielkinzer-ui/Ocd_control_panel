@@ -1,0 +1,8 @@
+node_modules/
+*.log
+.env
+*.local
+device-*.json
+*-dump-*.json
+.DS_Store
+ocd-tmp/

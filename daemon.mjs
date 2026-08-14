@@ -27,6 +27,18 @@ const PORT = Number(process.env.OCD_PORT || 18790);
 const TOKEN = process.env.OCD_TOKEN || crypto.randomBytes(18).toString("base64url");
 const ADB_TARGET = process.env.OCD_ADB || "";
 
+// Root (su/Magisk) capability, detected lazily once and cached.
+let ROOT_AVAILABLE = false;
+let _rootCheck = null;
+function hasRoot() {
+  if (_rootCheck) return _rootCheck;
+  _rootCheck = run("su", ["-c", "id -u"]).then((r) => {
+    ROOT_AVAILABLE = r.ok && r.stdout.trim() === "0";
+    return ROOT_AVAILABLE;
+  });
+  return _rootCheck;
+}
+
 function resolveRoot() {
   if (process.env.OCD_ROOT) return process.env.OCD_ROOT;
   for (const c of ["/storage/emulated/0", "/sdcard", "/mnt/sdcard"]) {
@@ -56,11 +68,13 @@ function run(cmd, args = [], { input, timeout = 30000 } = {}) {
   });
 }
 
-/** Run an Android command either directly or via self-adb when configured. */
+/** Run an Android command: self-adb (if OCD_ADB) → root su (if available) → direct shell. */
 async function android(cmd, args, opts = {}) {
   if (ADB_TARGET) {
-    const r = await run("adb", ["-s", ADB_TARGET, "shell", cmd, ...args], opts);
-    return r;
+    return run("adb", ["-s", ADB_TARGET, "shell", cmd, ...args], opts);
+  }
+  if (await hasRoot()) {
+    return run("su", ["-c", [cmd, ...args].join(" ")], opts);
   }
   return run(cmd, args, opts);
 }
@@ -97,7 +111,7 @@ async function handle(req, res) {
   try {
     // ---- health / meta ----
     if (pathname === "/health" && method === "GET") {
-      return send(res, 200, { ok: true, root: ROOT, adb: ADB_TARGET || null, android: await getprop("ro.build.version.release") });
+      return send(res, 200, { ok: true, root: ROOT, adb: ADB_TARGET || null, rootAccess: ROOT_AVAILABLE, android: await getprop("ro.build.version.release") });
     }
 
     if (pathname === "/device" && method === "GET") {
@@ -109,6 +123,7 @@ async function handle(req, res) {
         serial: await getprop("ro.serialno"),
         root: ROOT,
         adb: ADB_TARGET || null,
+        rootAccess: ROOT_AVAILABLE,
       };
       const pkgs = await android("pm", ["list", "packages"]);
       info.installedApps = pkgs.stdout.split("\n").filter(Boolean).length;
@@ -144,7 +159,7 @@ async function handle(req, res) {
         ok: false,
         stderr: r.stderr,
         hint: needsElevated
-          ? "force-stop needs root or Wireless Debugging self-adb (set OCD_ADB=127.0.0.1:<port>)"
+          ? "force-stop needs root, or Wireless Debugging self-adb (set OCD_ADB=127.0.0.1:<port>)"
           : "force-stop failed",
       });
     }
@@ -241,7 +256,7 @@ async function handle(req, res) {
         ok: false,
         error: "screenshot failed (no screencap or camera access)",
         detail: r.stderr || r.stdout,
-        hint: "Enable Wireless Debugging (OCD_ADB=127.0.0.1:5555) or install Termux:API app",
+        hint: "Enable Wireless Debugging (OCD_ADB=127.0.0.1:5555) or root the device",
       });
     }
 

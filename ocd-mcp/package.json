@@ -1,0 +1,10 @@
+{
+  "name": "ocd-mcp",
+  "version": "1.0.0",
+  "description": "MCP (stdio) server exposing the OpenClaw Device (OCD) control daemon to the OpenClaw agent as tools.",
+  "type": "module",
+  "main": "server.mjs",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0"
+  }
+}
