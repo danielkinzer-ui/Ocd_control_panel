@@ -27,6 +27,27 @@ that drive it.
 
 ---
 
+## API keys & credentials (what you need)
+
+Two kinds of secrets are involved: **external API keys** (from a provider, needed
+for the AI chat to work) and **local tokens** (generated on the phone, used for auth
+between the pieces). The web panel needs **no** external key.
+
+| Secret | Type | Where it lives | Needed for | How to set / get |
+|--------|------|---------------|-----------|------------------|
+| `OPENROUTER_API_KEY` | External API key | proot `/root/.openclaw/.env` | Chat/agent that drives the `android` tool (model = `openrouter/anthropic/claude-sonnet-4`) | Create at openrouter.ai; add `OPENROUTER_API_KEY=sk-or-...` to `.env`; restart gateway. (Swap for `ANTHROPIC_API_KEY`/`OPENAI_API_KEY` if you reconfigure the provider.) |
+| `OCD_TOKEN` (OCD daemon token) | Local token | Termux env when launching `daemon.mjs` | Auth to the daemon REST API (`:18790`) | Any string you choose; launch with `OCD_TOKEN=... node daemon.mjs &`. Also used by the MCP path as `OCD_TOKEN`. |
+| `gateway.auth.token` (gateway token) | Local token | `/root/.openclaw/openclaw.json` | Auth for any client talking to the gateway (`:18789`) | Already set on the phone; print with the command in the note above. |
+| Tailscale auth (optional) | External | `tailscale up` | Over-internet access instead of LAN | `tailscale up --authkey <key>` or interactive login. Optional. |
+
+**Minimum to get started:**
+- **Web panel only** → just the two local tokens (already configured on the phone). No external signup.
+- **Chat / `android` tool / MCP** → also need **`OPENROUTER_API_KEY`** (or your chosen provider key).
+
+> Never commit real keys/tokens. The repo uses `<OCD_DAEMON_TOKEN>` / `<GATEWAY_AUTH_TOKEN>` placeholders.
+
+---
+
 ## 0. Start the stack on the phone (Android host)
 
 Run these on the phone (Termux + proot):
