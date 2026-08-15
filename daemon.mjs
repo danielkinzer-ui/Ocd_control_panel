@@ -541,8 +541,9 @@ async function getprop(key) {
 }
 
 const server = http.createServer((req, res) => handle(req, res).catch((e) => send(res, 500, { ok: false, error: String(e) })));
-server.listen(PORT, "127.0.0.1", () => {
-  process.stderr.write(`\n[OCD] control daemon listening on 127.0.0.1:${PORT}\n`);
+const HOST = process.env.OCD_HOST || "127.0.0.1";
+server.listen(PORT, HOST, () => {
+  process.stderr.write(`\n[OCD] control daemon listening on ${HOST}:${PORT}\n`);
   process.stderr.write(`[OCD] token: ${TOKEN}\n`);
   process.stderr.write(`[OCD] storage root: ${ROOT}\n`);
   process.stderr.write(`[OCD] self-adb: ${ADB_TARGET || "(none - set OCD_ADB for input/screenshot)"}\n\n`);

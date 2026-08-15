@@ -12,6 +12,10 @@ set -e
 
 cd "$(dirname "$0")"
 
+# Bind the daemon to all interfaces so the panel is reachable from other devices.
+# Override with OCD_HOST=127.0.0.1 for localhost-only.
+export OCD_HOST="${OCD_HOST:-0.0.0.0}"
+
 echo "╔══════════════════════════════════════════════════════════╗"
 echo "║     OCD Control Panel — Full Startup                     ║"
 echo "╚══════════════════════════════════════════════════════════╝"

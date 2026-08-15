@@ -1,12 +1,12 @@
 #!/bin/bash
 # OpenClaw Device (OCD) Control Panel - One-liner installer
-# Usage: bash <(curl -fsSL https://raw.githubusercontent.com/YOUR_USERNAME/ocd-control/main/quick-install.sh)
-# Or:    wget -qO- https://raw.githubusercontent.com/YOUR_USERNAME/ocd-control/main/quick-install.sh | bash
+# Usage: bash <(curl -fsSL https://raw.githubusercontent.com/danielkinzer-ui/Ocd_control_panel/master/quick-install.sh)
+# Or:    wget -qO- https://raw.githubusercontent.com/danielkinzer-ui/Ocd_control_panel/master/quick-install.sh | bash
 
 set -euo pipefail
 
-REPO="${OCD_REPO:-YOUR_USERNAME/ocd-control}"
-BRANCH="${OCD_BRANCH:-main}"
+REPO="${OCD_REPO:-danielkinzer-ui/Ocd_control_panel}"
+BRANCH="${OCD_BRANCH:-master}"
 DIR="${OCD_DIR:-$HOME/ocd-control}"
 RAW="https://raw.githubusercontent.com/$REPO/$BRANCH"
 
@@ -24,11 +24,10 @@ chmod +x "$DIR"/*.sh "$DIR"/*.mjs
 termux-setup-storage >/dev/null 2>&1 || true
 
 echo ""
-echo "✅ Done. Run the daemon:"
-echo "   bash $DIR/start.sh"
+echo "✅ Done. Start everything:"
+echo "   bash $DIR/start-all.sh"
 echo ""
-echo "Then in another Termux session:"
-echo "   bash $DIR/serve-panel.sh 8080"
+echo "Then open: http://127.0.0.1:8080/panel.html"
+echo "Panel login: Host=127.0.0.1  Port=18790  Token=<from start-all.sh>"
 echo ""
-echo "Open: http://127.0.0.1:8080/panel.html"
-echo "Enter: Host=127.0.0.1  Port=18790  Token=<from daemon>"
+echo "Chat control (optional): openclaw plugins install --link $DIR/android-control-plugin && openclawx restart"

@@ -35,7 +35,7 @@ Allow the permission popup.
 ### Step 1: Get the code
 ```bash
 cd ~
-git clone https://github.com/YOUR_REPO/ocd-control.git
+git clone https://github.com/danielkinzer-ui/Ocd_control_panel.git
 # OR if you already have it:
 cd ~/ocd-control
 ```
@@ -167,13 +167,24 @@ On laptop browser: `http://PHONE_IP:8080/panel.html`
 
 ### Option 2: GitHub Pages (panel hosted online, connects to your phone)
 1. Fork/upload `panel.html` to your GitHub repo
-2. Enable Pages: Settings → Pages → Source: Deploy from branch → main → /(root)
+2. Enable Pages: Settings → Pages → Source: Deploy from branch → master → /(root)
 3. Visit: `https://yourname.github.io/repo/panel.html`
 4. Enter your phone's **public IP** (or use Tailscale/VPN) + port 18790 + token
 
 ⚠️ **Security**: If exposing over internet, use a VPN (Tailscale, WireGuard) or SSH tunnel. Don't expose port 18790 publicly.
 
 ---
+
+## 💬 Chat Control (OpenClaw plugin)
+
+To drive the phone by chat (MacBook / Windows client → the `android` tool), install the bundled plugin into OpenClaw:
+
+```bash
+openclaw plugins install --link ~/ocd-control/android-control-plugin
+openclawx restart
+```
+
+The plugin proxies to the daemon at `127.0.0.1:18790`. Point any OpenClaw client at the gateway `http://<phone-ip>:18789` using the gateway token (in `openclaw.json` → `gateway.auth.token`). See `START-USAGE.md` and `MACBOOK.md`.
 
 ## 🔐 Security Notes
 
