@@ -50,7 +50,13 @@ between the pieces). The web panel needs **no** external key.
 
 ## 0. Start the stack on the phone (Android host)
 
-Run these on the phone (Termux + proot):
+**One command (daemon + gateway + panel):**
+```bash
+bash ~/ocd-control/start-all.sh
+# optional, stable chat token: OCD_TOKEN=my-secret bash ~/ocd-control/start-all.sh
+```
+
+Or start each piece separately (Termux + proot):
 
 ```bash
 # 1) OCD daemon — REST API on 127.0.0.1:18790 (Termux)

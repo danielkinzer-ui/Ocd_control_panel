@@ -1,6 +1,12 @@
 #!/bin/bash
-# One-command starter: runs OCD daemon + panel server together
+# One-command starter: OCD daemon + OpenClaw gateway + panel server
 # Usage: bash ~/ocd-control/start-all.sh
+#
+# Start the chat gateway too with a matching daemon token:
+#   OCD_TOKEN=my-secret bash ~/ocd-control/start-all.sh
+# (the android-control plugin must use the same token, or run:
+#   openclaw plugins configure android-control --set token=my-secret
+#   openclawx restart)
 
 set -e
 
@@ -38,6 +44,16 @@ if [ -z "$TOKEN" ]; then
   TOKEN=$(grep -o '\[OCD\] token: [^ ]*' /tmp/ocd-daemon.log | cut -d' ' -f3)
 fi
 
+# Start OpenClaw gateway (proot) — chat control via the android tool
+echo "🤖 Starting OpenClaw gateway (chat)..."
+if command -v openclawx >/dev/null 2>&1; then
+  openclawx restart > /tmp/ocd-gateway.log 2>&1 &
+  GATEWAY_PID=$!
+else
+  echo "⚠️  openclawx not found; skipping gateway. Chat control will be unavailable."
+  GATEWAY_PID=""
+fi
+
 # Get phone IP
 PHONE_IP=$(ip addr show wlan0 2>/dev/null | grep 'inet ' | head -1 | awk '{print $2}' | cut -d'/' -f1)
 if [ -z "$PHONE_IP" ]; then
@@ -46,22 +62,24 @@ fi
 
 echo ""
 echo "╔══════════════════════════════════════════════════════════╗"
-echo "║     ✅ DAEMON RUNNING                                    ║"
+echo "║     ✅ SERVICES STARTING                                 ║"
 echo "╠══════════════════════════════════════════════════════════╣"
 if [ -n "$TOKEN" ]; then
-  echo "║  Token: $TOKEN"
+  echo "║  Daemon token: $TOKEN"
 else
-  echo "║  Token: (check /tmp/ocd-daemon.log)"
+  echo "║  Daemon token: (check /tmp/ocd-daemon.log)"
 fi
-echo "║  Daemon: http://127.0.0.1:18790"
+echo "║  Daemon:  http://127.0.0.1:18790"
 if [ -n "$PHONE_IP" ]; then
-  echo "║  LAN IP: $PHONE_IP"
+  echo "║  Daemon LAN: http://$PHONE_IP:18790"
+fi
+if command -v openclawx >/dev/null 2>&1; then
+  echo "║  Gateway:  http://127.0.0.1:18789   (chat / android tool)"
+  if [ -n "$PHONE_IP" ]; then
+    echo "║  Gateway LAN: http://$PHONE_IP:18789"
+  fi
 fi
 echo "╚══════════════════════════════════════════════════════════╝"
-echo ""
-
-# Start panel server
-echo "🌐 Starting panel server on port 8080..."
 echo ""
 echo "╔══════════════════════════════════════════════════════════╗"
 echo "║     OPEN IN BROWSER:                                     ║"
@@ -71,19 +89,29 @@ if [ -n "$PHONE_IP" ]; then
   echo "║  From laptop:    http://$PHONE_IP:8080/panel.html"
 fi
 echo "║                                                          ║"
-echo "║  Enter in panel:                                         ║"
-echo "║    Host: 127.0.0.1  (or $PHONE_IP from laptop)"
-echo "║    Port: 18790"
+echo "║  Panel login:  Host=127.0.0.1 (or $PHONE_IP)  Port=18790"
 if [ -n "$TOKEN" ]; then
   echo "║    Token: $TOKEN"
 fi
 echo "╚══════════════════════════════════════════════════════════╝"
 echo ""
-echo "Press Ctrl+C to stop both services"
+if [ -n "$TOKEN" ]; then
+  echo "ℹ️  Chat note: the android-control plugin must use the same token."
+  echo "    If chat 401s, run: openclaw plugins configure android-control --set token=$TOKEN && openclawx restart"
+  echo ""
+fi
+echo "Press Ctrl+C to stop all services"
 echo ""
 
 # Cleanup on exit
-trap 'kill $DAEMON_PID 2>/dev/null; pkill -f "http.server 8080" 2>/dev/null; echo ""; echo "Stopped."' EXIT INT TERM
+cleanup() {
+  echo ""
+  echo "Stopping services..."
+  kill "$DAEMON_PID" 2>/dev/null
+  pkill -f "openclaw gateway" 2>/dev/null
+  pkill -f "http.server 8080" 2>/dev/null
+}
+trap cleanup EXIT INT TERM
 
 # Run panel server (blocks)
 python3 -m http.server 8080
