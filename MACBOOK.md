@@ -9,7 +9,7 @@ terminal/panel.
 | Service            | Process            | Port            | Notes                                  |
 |--------------------|--------------------|-----------------|----------------------------------------|
 | OCD daemon         | `daemon.mjs` (Termux) | `127.0.0.1:18790` | REST API for phone control (SMS, call, screenshot, input, shell, fs, apps) |
-| OpenClaw gateway   | `openclaw` (proot) | `192.0.0.4:18789` (LAN) | Chat gateway; exposes the `android` tool. Currently `bind: "lan"` |
+| OpenClaw gateway   | `openclaw` (proot) | `:18789` on all LAN ifaces | Chat gateway; exposes the `android` tool. Currently `bind: "lan"` |
 | Phone control panel | `serve-panel.sh` (Termux) | `127.0.0.1:8080` | Web UI (`/panel.html`) |
 
 - **OCD daemon token** (X-OCD-Token): set via the `OCD_TOKEN` env var when the
@@ -24,11 +24,27 @@ the phone" = your chat client → OpenClaw gateway → `android` tool → OCD da
 
 ## Step 0 — Make the gateway reachable from the MacBook
 
-The gateway currently binds **LAN** (`bind: "lan"` → `192.0.0.4:18789`),
-so any device on the same WiFi can reach it directly at
-`http://192.0.0.4:18789` (find the phone's current WiFi IP with
-`ip -4 addr show wlan0`). For access over the internet (or off-WiFi), open a
-tunnel instead. Pick one:
+The gateway currently binds **LAN** (`bind: "lan"`), which listens on every
+non-loopback interface, so the MacBook reaches it at the phone's IP on whatever
+network they share. The right IP depends on how the MacBook connects:
+
+- **MacBook on the phone's hotspot** → use the hotspot IP (`ap0`), e.g.
+  `10.149.174.67`.
+- **MacBook + phone on the same home WiFi** → use the phone's WiFi client IP
+  (`wlan0`).
+
+Find the current phone IPs with:
+
+```bash
+proot-distro login ubuntu -- sh -c 'ip -4 addr show'
+# ap0  = hotspot/WiFi AP  (use this if MacBook joins the hotspot)
+# wlan0 = WiFi client     (use this if both are on home WiFi)
+# v4-ccmni* = cellular    (NOT reachable from the MacBook)
+```
+
+Then the MacBook reaches the gateway at `http://<phone-ip>:18789`. These are
+DHCP addresses and **can change**; for a stable address use `adb forward` or
+Tailscale (below). For access over the internet (or off-WiFi), open a tunnel:
 
 ### Option A — Tailscale (recommended, works over the internet)
 
