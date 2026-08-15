@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OCD Control — Set up another phone</title>
+<style>
+  :root { color-scheme: dark; }
+  body { font:16px/1.5 system-ui, sans-serif; max-width:680px; margin:0 auto; padding:20px;
+         background:#0f1115; color:#e6e6e6; }
+  h1 { font-size:22px; } h2 { font-size:18px; margin-top:28px; }
+  code, pre { background:#1b1f27; border-radius:8px; }
+  pre { padding:12px; overflow:auto; white-space:pre-wrap; word-break:break-all; }
+  code { padding:2px 6px; }
+  .warn { background:#3a2a12; border:1px solid #6b4a16; padding:12px; border-radius:10px; }
+  button { background:#2f6df6; color:#fff; border:0; padding:12px 16px; border-radius:10px;
+           font-size:16px; cursor:pointer; width:100%; margin-top:8px; }
+  button:active { background:#2557cc; }
+  .step { background:#161a21; border:1px solid #262c36; border-radius:10px; padding:14px; margin-top:12px; }
+  a { color:#6ea8ff; }
+</style>
+</head>
+<body>
+<h1>Set up OCD Control on another phone</h1>
+
+<div class="warn">
+  <b>Only run this on a phone you own.</b> This installs the OCD daemon so <i>that phone</i>
+  can be controlled (by its owner, via its own panel or paired gateway). It requires
+  <b>Termux</b> to be installed and your explicit tap to run the command. There is no
+  silent/remote install — you must open this page and run the step yourself.
+</div>
+
+<h2>Step 1 — Open this page on the phone to set up</h2>
+<div class="step">
+  On the <i>other</i> phone (the one you're adding), open this same link in its browser.
+  The install command below is pre-filled with this server's address.
+</div>
+
+<h2>Step 2 — Install (one-tap copy)</h2>
+<div class="step">
+  <p>1. Install <a href="https://f-droid.org/packages/com.termux/">Termux</a> (F-Droid) on the phone.</p>
+  <p>2. Copy the command, open Termux, paste and run:</p>
+  <pre id="cmd">loading…</pre>
+  <button onclick="copyCmd()">Copy install command</button>
+  <p style="margin-top:10px;opacity:.8">The command clones the repo, installs Node.js + Termux:API,
+  and runs the installer. You'll see the daemon <b>TOKEN</b> it prints.</p>
+</div>
+
+<h2>Step 3 — Start the daemon &amp; open its panel</h2>
+<div class="step">
+  <pre>bash ~/ocd-control/start.sh        # prints a TOKEN; daemon on :18790
+bash ~/ocd-control/serve-panel.sh 8080 # panel on :8080</pre>
+  Then open <code>http://&lt;this-phone-ip&gt;:8080/panel.html</code> on that phone (or any device
+  on its WiFi). That phone is now controllable on its own.
+</div>
+
+<h2>Step 4 (optional) — Control it through your MacBook / gateway</h2>
+<div class="step">
+  To drive this phone from your existing OpenClaw gateway / MacBook chat, point the
+  <code>android-control</code> plugin's <code>daemonUrl</code> at this phone's IP instead of
+  <code>127.0.0.1:18790</code>:
+  <pre>proot-distro login ubuntu -- sh -c 'openclaw plugins configure android-control --set daemonUrl=http://&lt;this-phone-ip&gt;:18790 --set token=&lt;TOKEN&gt;'
+openclawx restart</pre>
+  (This routes the <code>android</code> tool to the new phone. Repeat per phone to switch targets.)
+</div>
+
+<p style="margin-top:24px;opacity:.6;font-size:13px">
+  Self-hosted onboarding. The installer is fetched from the panel server you opened this page from.
+  No data leaves your network except the GitHub clone.
+</p>
+
+<script>
+  // Pre-fill the install command using the server this page is served from.
+  var host = window.location.hostname + ":" + window.location.port;
+  var cmd = "pkg install -y git && bash <(curl -fsSL http://" + host +
+            "/install.sh) OCD_REPO=https://github.com/danielkinzer-ui/Ocd_control_panel OCD_BRANCH=master";
+  document.getElementById("cmd").textContent = cmd;
+  function copyCmd() {
+    navigator.clipboard.writeText(cmd).then(function(){
+      var b = document.querySelector("button");
+      b.textContent = "Copied!";
+      setTimeout(function(){ b.textContent = "Copy install command"; }, 1500);
+    });
+  }
+</script>
+</body>
+</html>

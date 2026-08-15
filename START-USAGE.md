@@ -154,6 +154,10 @@ Verify reachability from PowerShell:
 
 The host phone already runs the stack. To drive it from a **second** Android device:
 
+**Turn a second phone into a controllable host:** open the onboarding page from the
+host phone on the new phone's browser — `http://<host-phone-ip>:8080/setup.html` —
+and follow its steps (installs the daemon + panel on that phone). See `setup.html`.
+
 **A. Web panel (zero install):** open a browser on the client and go to
 `http://<phone-ip>:8080/panel.html` (same WiFi/hotspot), or tunnel with Termux:
 ```bash
