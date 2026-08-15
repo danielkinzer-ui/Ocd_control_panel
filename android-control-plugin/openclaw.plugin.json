@@ -1,0 +1,31 @@
+{
+  "id": "android-control",
+  "name": "Android Control",
+  "description": "Executive assistant tools to control the connected Android phone via the on-device OCD control daemon.",
+  "activation": {
+    "onStartup": true
+  },
+  "enabledByDefault": true,
+  "contracts": {
+    "tools": ["android"]
+  },
+  "toolMetadata": {
+    "android": {
+      "optional": false
+    }
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "daemonUrl": {
+        "type": "string",
+        "description": "Base URL of the OCD control daemon (default http://127.0.0.1:18790)."
+      },
+      "token": {
+        "type": "string",
+        "description": "Auth token matching the daemon's OCD_TOKEN."
+      }
+    }
+  }
+}
