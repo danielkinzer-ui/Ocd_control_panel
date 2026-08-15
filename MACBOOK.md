@@ -6,10 +6,10 @@ terminal/panel.
 
 ## What is running on the phone
 
-| Service            | Process            | Port (loopback) | Notes                                  |
+| Service            | Process            | Port            | Notes                                  |
 |--------------------|--------------------|-----------------|----------------------------------------|
 | OCD daemon         | `daemon.mjs` (Termux) | `127.0.0.1:18790` | REST API for phone control (SMS, call, screenshot, input, shell, fs, apps) |
-| OpenClaw gateway   | `openclaw` (proot) | `127.0.0.1:18789` | Chat gateway; exposes the `android` tool |
+| OpenClaw gateway   | `openclaw` (proot) | `192.0.0.4:18789` (LAN) | Chat gateway; exposes the `android` tool. Currently `bind: "lan"` |
 | Phone control panel | `serve-panel.sh` (Termux) | `127.0.0.1:8080` | Web UI (`/panel.html`) |
 
 - **OCD daemon token** (X-OCD-Token): set via the `OCD_TOKEN` env var when the
@@ -24,8 +24,11 @@ the phone" = your chat client → OpenClaw gateway → `android` tool → OCD da
 
 ## Step 0 — Make the gateway reachable from the MacBook
 
-The gateway binds **loopback** by default, so the MacBook cannot reach it until
-you open a tunnel. Pick one:
+The gateway currently binds **LAN** (`bind: "lan"` → `192.0.0.4:18789`),
+so any device on the same WiFi can reach it directly at
+`http://192.0.0.4:18789` (find the phone's current WiFi IP with
+`ip -4 addr show wlan0`). For access over the internet (or off-WiFi), open a
+tunnel instead. Pick one:
 
 ### Option A — Tailscale (recommended, works over the internet)
 
