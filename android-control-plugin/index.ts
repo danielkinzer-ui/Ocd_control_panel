@@ -21,6 +21,7 @@ type Action =
   | "sms"
   | "call"
   | "notifications"
+  | "mic"
   | "shell";
 
 const AndroidToolSchema = Type.Object(
@@ -42,6 +43,7 @@ const AndroidToolSchema = Type.Object(
       Type.Literal("sms"),
       Type.Literal("call"),
       Type.Literal("notifications"),
+      Type.Literal("mic"),
       Type.Literal("shell"),
     ]),
     filter: Type.Optional(Type.String()),
@@ -67,6 +69,8 @@ const AndroidToolSchema = Type.Object(
     to: Type.Optional(Type.String()),
     body: Type.Optional(Type.String()),
     number: Type.Optional(Type.String()),
+    seconds: Type.Optional(Type.Number({ description: "Mic clip length in seconds (1-120)" })),
+    encoder: Type.Optional(Type.String({ description: "Mic encoder: aac, amr_wb, amr_nb, opus" })),
     cmd: Type.Optional(Type.String()),
     args: Type.Optional(Type.Array(Type.String())),
   },
@@ -133,6 +137,8 @@ function routeFor(action: Action, p: Record<string, any>): { route: string; meth
       return { route: "/call", method: "POST", body: { number: p.number } };
     case "notifications":
       return { route: "/notifications", method: "GET" };
+    case "mic":
+      return { route: "/mic", method: "POST", body: { action: "record", seconds: p.seconds || 10, encoder: p.encoder || "aac" } };
     case "shell":
       return { route: "/shell", method: "POST", body: { cmd: p.cmd, args: p.args || [] } };
   }
@@ -157,7 +163,7 @@ export default definePluginEntry({
     api.registerTool({
       name: "android",
       description:
-        "Control the Android phone as an executive assistant. Actions: device (info), apps (list), launch/stop/install/uninstall apps, ls/read/write/copy files (incl. USB drive), usb (mounted volumes), screenshot, input (tap/swipe/text/key), sms, call, notifications, shell (raw am/pm/getprop). Requires the OCD control daemon running in Termux.",
+        "Control the Android phone as an executive assistant. Actions: device (info), apps (list), launch/stop/install/uninstall apps, ls/read/write/copy files (incl. USB drive), usb (mounted volumes), screenshot, mic (record audio clip), input (tap/swipe/text/key), sms, call, notifications, shell (raw am/pm/getprop). Requires the OCD control daemon running in Termux.",
       parameters: AndroidToolSchema,
       async execute(_id, params: Record<string, any>) {
         const action = params.action as Action;

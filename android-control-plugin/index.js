@@ -6,7 +6,7 @@ const TOKEN = process.env.OCD_TOKEN || "";
 const ACTIONS = [
   "device", "apps", "launch", "stop", "install", "uninstall",
   "ls", "read", "write", "copy", "usb", "screenshot",
-  "input", "sms", "call", "notifications", "shell",
+  "input", "sms", "call", "notifications", "mic", "shell",
 ];
 
 const AndroidToolSchema = {
@@ -33,6 +33,8 @@ const AndroidToolSchema = {
     to: { type: "string" },
     body: { type: "string" },
     number: { type: "string" },
+    seconds: { type: "number", description: "Mic clip length in seconds (1-120)" },
+    encoder: { type: "string", description: "Mic encoder: aac, amr_wb, amr_nb, opus" },
     cmd: { type: "string" },
     args: { type: "array", items: { type: "string" } },
   },
@@ -66,6 +68,7 @@ function routeFor(action, p) {
     case "sms": return { route: "/sms", method: "POST", body: { to: p.to, body: p.body } };
     case "call": return { route: "/call", method: "POST", body: { number: p.number } };
     case "notifications": return { route: "/notifications", method: "GET" };
+    case "mic": return { route: "/mic", method: "POST", body: { action: "record", seconds: p.seconds || 10, encoder: p.encoder || "aac" } };
     case "shell": return { route: "/shell", method: "POST", body: { cmd: p.cmd, args: p.args || [] } };
   }
 }
@@ -89,7 +92,7 @@ export default definePluginEntry({
     api.registerTool({
       name: "android",
       description:
-        "Control the Android phone as an executive assistant. Actions: device, apps, launch/stop/install/uninstall, ls/read/write/copy files (incl. USB), usb, screenshot, input (tap/swipe/text/key), sms, call, notifications, shell. Requires the OCD control daemon running in Termux.",
+        "Control the Android phone as an executive assistant. Actions: device, apps, launch/stop/install/uninstall, ls/read/write/copy files (incl. USB), usb, screenshot, mic (record audio clip), input (tap/swipe/text/key), sms, call, notifications, shell. Requires the OCD control daemon running in Termux.",
       parameters: AndroidToolSchema,
       async execute(_id, params) {
         const action = params.action;

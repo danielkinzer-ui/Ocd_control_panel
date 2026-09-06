@@ -145,6 +145,17 @@ const TOOLS = [
       properties: { path: { type: "string", description: "Optional output path" } },
     },
   },
+  {
+    name: "ocd_mic_record",
+    description: "Record a microphone clip (push-to-talk). Requires Termux:API + Microphone permission.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        seconds: { type: "number", description: "Clip length in seconds (1-120, default 10)" },
+        encoder: { type: "string", enum: ["aac", "amr_wb", "amr_nb", "opus"] },
+      },
+    },
+  },
 ];
 
 const server = new Server(
@@ -178,6 +189,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case "ocd_dump": r = await ocd("GET", "/debug/dump"); break;
       case "ocd_processes": r = await ocd("GET", "/debug/processes"); break;
       case "ocd_screenshot_camera": r = await ocd("POST", "/screenshot", { path: a.path || "" }); break;
+      case "ocd_mic_record": r = await ocd("POST", "/mic", { action: "record", seconds: a.seconds || 10, encoder: a.encoder || "aac" }); break;
       default: return { content: [{ type: "text", text: "Unknown tool: " + name }], isError: true };
     }
     return {
