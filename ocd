@@ -1,0 +1,32 @@
+#!/bin/bash
+# ocd — one-command start for OCD Control Panel
+# Usage: ocd
+#   or:  OCD_TOKEN=mysecret ocd
+#
+# Auto-installs if missing, starts everything, prints browser URL.
+
+set -e
+
+DIR="$HOME/ocd-control"
+REPO="${OCD_REPO:-https://github.com/danielkinzer-ui/Ocd_control_panel}"
+BRANCH="${OCD_BRANCH:-master}"
+
+# ── Install if missing ──────────────────────────────
+if [ ! -d "$DIR/.git" ] || [ ! -f "$DIR/daemon.mjs" ]; then
+  echo ""
+  echo "  OCD Control Panel not found. Installing..."
+  echo ""
+  [ -d "$DIR" ] && rm -rf "$DIR"
+  git clone --branch "$BRANCH" --depth 1 "$REPO" "$DIR"
+  chmod +x "$DIR"/*.sh "$DIR"/*.mjs "$DIR"/ocd 2>/dev/null || true
+  if ! command -v node >/dev/null 2>&1; then
+    echo "  Installing Node.js..."
+    pkg install -y nodejs 2>/dev/null || apt-get install -y nodejs 2>/dev/null || true
+  fi
+  termux-setup-storage >/dev/null 2>&1 || true
+  echo "  ✅ Installed to $DIR"
+  echo ""
+fi
+
+# ── Launch ──────────────────────────────────────────
+exec bash "$DIR/start-all.sh"

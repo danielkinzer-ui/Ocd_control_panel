@@ -46,12 +46,14 @@
   and runs the installer. You'll see the daemon <b>TOKEN</b> it prints.</p>
 </div>
 
-<h2>Step 3 — Start the daemon &amp; open its panel</h2>
+<h2>Step 3 — Start everything &amp; open its panel</h2>
 <div class="step">
-  <pre>bash ~/ocd-control/start.sh        # prints a TOKEN; daemon on :18790
-bash ~/ocd-control/serve-panel.sh 8080 # panel on :8080</pre>
-  Then open <code>http://&lt;this-phone-ip&gt;:8080/panel.html</code> on that phone (or any device
-  on its WiFi). That phone is now controllable on its own.
+  <pre>ocd   # or: bash ~/ocd-control/start-all.sh</pre>
+  <p>This starts the daemon (:18790) + panel server (:8080) and prints a
+  ready-to-open URL with the token embedded, e.g.</p>
+  <pre>http://&lt;this-phone-ip&gt;:8080/panel.html?api=http://&lt;this-phone-ip&gt;:18790&amp;token=&lt;TOKEN&gt;</pre>
+  <p>Open that URL on the phone (or any device on its WiFi) — the panel
+  <b>auto-connects</b>, no manual login. That phone is now controllable on its own.</p>
 </div>
 
 <h2>Step 4 (optional) — Control it through your MacBook / gateway</h2>

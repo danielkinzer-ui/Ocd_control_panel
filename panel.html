@@ -5,563 +5,1477 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>OCD Control Panel</title>
 <style>
-:root { --bg:#0b0f14; --fg:#e8eaed; --muted:#6b7280; --accent:#22d3ee; --accent-dim:#0891b2; --card:#111827; --border:#1f2937; --danger:#ef4444; --success:#22c55e; --warn:#f59e0b; }
-* { box-sizing:border-box; margin:0; padding:0; }
-body { font-family: system-ui, -apple-system, sans-serif; background:var(--bg); color:var(--fg); line-height:1.5; min-height:100vh; }
-header { position:sticky; top:0; z-index:10; background:rgba(11,15,20,0.95); backdrop-filter:blur(8px); border-bottom:1px solid var(--border); padding:12px 20px; display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
-header h1 { font-size:1.25rem; font-weight:600; color:var(--accent); letter-spacing:0.5px; }
-header .conn { display:flex; align-items:center; gap:8px; flex:1; justify-content:flex-end; flex-wrap:wrap; }
-.input { background:var(--card); border:1px solid var(--border); color:var(--fg); padding:8px 12px; border-radius:6px; font-size:0.875rem; outline:none; width:100%; max-width:280px; }
-.input:focus { border-color:var(--accent); }
-.btn { background:var(--accent); color:#001014; border:none; padding:8px 16px; border-radius:6px; font-weight:600; cursor:pointer; font-size:0.875rem; transition:background 0.15s; }
-.btn:hover { background:var(--accent-dim); }
-.btn:disabled { opacity:0.5; cursor:not-allowed; }
-.btn.ghost { background:transparent; color:var(--fg); border:1px solid var(--border); }
-.btn.ghost:hover { background:var(--card); border-color:var(--accent); }
-.btn.danger { background:var(--danger); color:#fff; }
-.btn.success { background:var(--success); color:#052e16; }
-.status { display:flex; align-items:center; gap:6px; font-size:0.8rem; }
-.status-dot { width:8px; height:8px; border-radius:50%; background:var(--danger); }
-.status-dot.ok { background:var(--success); }
-main { padding:20px; max-width:1200px; margin:0 auto; }
-.grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(340px, 1fr)); gap:16px; }
-.card { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:16px; }
-.card h2 { font-size:0.95rem; font-weight:600; margin-bottom:12px; color:var(--accent); display:flex; align-items:center; gap:8px; }
-.card h2::before { content:""; width:4px; height:16px; background:var(--accent); border-radius:2px; }
-.row { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px; }
-.row > .btn { flex-shrink:0; }
-.row > .input { flex:1; min-width:140px; }
-.pre { background:#051014; border:1px solid var(--border); border-radius:6px; padding:12px; font-family:ui-monospace, monospace; font-size:0.75rem; max-height:300px; overflow:auto; white-space:pre-wrap; word-break:break-word; color:#94a3b8; }
-.pre.ok { color:var(--success); }
-.pre.err { color:var(--danger); }
-.list { list-style:none; }
-.list li { padding:8px 10px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:10px; font-size:0.85rem; }
-.list li:last-child { border-bottom:none; }
-.list .pkg { font-family:ui-monospace, monospace; color:var(--accent); flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.badge { font-size:0.7rem; padding:2px 6px; border-radius:4px; background:var(--border); color:var(--muted); }
-.badge.ok { background:rgba(34,197,94,0.15); color:var(--success); }
-.badge.warn { background:rgba(245,158,11,0.15); color:var(--warn); }
-.badge.err { background:rgba(239,68,68,0.15); color:var(--danger); }
-.tabs { display:flex; gap:4px; margin-bottom:12px; border-bottom:1px solid var(--border); padding-bottom:4px; }
-.tab { padding:6px 12px; font-size:0.8rem; color:var(--muted); cursor:pointer; border-radius:6px 6px 0 0; background:transparent; border:none; }
-.tab.active { color:var(--accent); background:rgba(34,211,238,0.1); }
-.tab-panel { display:none; }
-.tab-panel.active { display:block; animation:fade 0.15s; }
-@keyframes fade { from {opacity:0; transform:translateY(4px);} to {opacity:1; transform:none;} }
-.screenshot-box { text-align:center; }
-.screenshot-box img { max-width:100%; max-height:400px; border:1px solid var(--border); border-radius:8px; background:#051014; }
-.fs-tree { font-family:ui-monospace, monospace; font-size:0.75rem; }
-.fs-tree .dir { color:var(--accent); cursor:pointer; }
-.fs-tree .file { color:#94a3b8; }
-.fs-tree .dir::before { content:"📁 "; }
-.fs-tree .file::before { content:"📄 "; }
-.fs-tree li { padding:2px 0 2px 16px; }
-.modal { position:fixed; inset:0; background:rgba(0,0,0,0.7); display:flex; align-items:center; justify-content:center; z-index:100; display:none; }
-.modal.active { display:flex; }
-.modal-content { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:20px; width:90%; max-width:500px; max-height:80vh; overflow:auto; }
-.modal h3 { margin-bottom:16px; color:var(--accent); }
-.modal .row { margin-top:16px; justify-content:flex-end; }
-.toast { position:fixed; bottom:20px; right:20px; background:var(--card); border:1px solid var(--border); padding:12px 16px; border-radius:8px; z-index:200; display:none; animation:slide 0.2s; }
-.toast.show { display:block; }
-.toast.ok { border-left:4px solid var(--success); }
-.toast.err { border-left:4px solid var(--danger); }
-@keyframes slide { from {opacity:0; transform:translateY(20px);} to {opacity:1; transform:none;} }
-.device-info { display:grid; grid-template-columns:repeat(2, 1fr); gap:8px; font-size:0.85rem; }
-.device-info .label { color:var(--muted); }
-.device-info .value { font-family:ui-monospace, monospace; color:var(--fg); word-break:break-all; }
-@media (max-width: 600px) {
-  .device-info { grid-template-columns:1fr; }
-  header { flex-direction:column; align-items:stretch; }
-  header .conn { justify-content:stretch; }
-  .input { max-width:none; }
+:root {
+  --bg: #070b12; --bg-raised: #101724; --bg-raised2: #151e30; --bg-overlay: rgba(7,11,18,0.95);
+  --fg: #eef2f7; --fg-dim: #94a3b8; --muted: #64748b;
+  --accent: #22d3ee; --accent2: #818cf8; --accent-dim: #0891b2; --accent-bg: rgba(34,211,238,0.1);
+  --grad: linear-gradient(135deg,#22d3ee,#818cf8);
+  --border: #1c2740; --border-accent: rgba(34,211,238,0.45);
+  --danger: #f87171; --danger-bg: rgba(239,68,68,0.12);
+  --success: #34d399; --success-bg: rgba(34,197,94,0.12);
+  --warn: #fbbf24; --warn-bg: rgba(245,158,11,0.12);
+  --violet: #a78bfa; --amber: #fbbf24;
+  --sidebar-w: 228px; --header-h: 0px;
+  --radius: 8px; --radius-lg: 14px;
+  --shadow: 0 8px 28px rgba(0,0,0,0.45);
+  --glow: 0 0 18px rgba(34,211,238,0.25);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--fg);line-height:1.5;min-height:100vh;overflow:hidden;
+  background:
+    radial-gradient(1100px 500px at 85% -10%, rgba(129,140,248,0.14), transparent 60%),
+    radial-gradient(900px 480px at -10% 20%, rgba(34,211,238,0.12), transparent 60%),
+    radial-gradient(700px 500px at 50% 110%, rgba(52,211,153,0.07), transparent 60%),
+    var(--bg);
+}
+::-webkit-scrollbar{width:10px;height:10px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:#26314d;border-radius:6px;border:2px solid var(--bg);}
+::-webkit-scrollbar-thumb:hover{background:#33415f;}
+
+/* ── Layout ─────────────────────────────────────────── */
+.app{display:flex;height:100vh;}
+.sidebar{width:var(--sidebar-w);min-width:var(--sidebar-w);background:linear-gradient(180deg,#0d1424,#0a101d);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;z-index:20;}
+.sidebar-header{padding:18px 16px 14px;border-bottom:1px solid var(--border);background:linear-gradient(180deg,rgba(34,211,238,0.08),transparent);}
+.sidebar-header h1{font-size:1.02rem;font-weight:800;letter-spacing:0.3px;display:flex;align-items:center;gap:9px;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;}
+.sidebar-header h1 span{font-size:1.3rem;filter:drop-shadow(0 0 8px rgba(34,211,238,0.6));}
+.conn-status{display:flex;align-items:center;gap:7px;margin-top:10px;font-size:0.74rem;color:var(--muted);cursor:pointer;padding:6px 9px;border:1px solid var(--border);border-radius:20px;background:rgba(255,255,255,0.02);transition:all 0.15s;}
+.conn-status:hover{color:var(--fg);border-color:var(--border-accent);}
+.conn-dot{width:8px;height:8px;border-radius:50%;background:var(--danger);flex-shrink:0;box-shadow:0 0 8px var(--danger);}
+.conn-dot.ok{background:var(--success);box-shadow:0 0 8px var(--success);animation:pulse 2s infinite;}
+.conn-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+.nav{flex:1;padding:8px 0;}
+.nav-group{padding:0 10px;margin-bottom:4px;}
+.nav-group-label{font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:1.4px;color:var(--muted);padding:10px 12px 5px;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;cursor:pointer;font-size:0.85rem;color:var(--fg-dim);transition:all 0.14s;border:1px solid transparent;background:none;width:100%;text-align:left;}
+.nav-item:hover{background:rgba(34,211,238,0.07);color:var(--fg);transform:translateX(2px);}
+.nav-item.active{background:linear-gradient(135deg,rgba(34,211,238,0.16),rgba(129,140,248,0.14));color:var(--accent);font-weight:700;border-color:rgba(34,211,238,0.22);box-shadow:var(--glow);}
+.nav-item .icon{width:20px;text-align:center;font-size:0.95rem;flex-shrink:0;}
+
+.sidebar-footer{padding:12px 16px;border-top:1px solid var(--border);font-size:0.7rem;color:var(--muted);text-align:center;}
+
+.content{flex:1;overflow-y:auto;overflow-x:hidden;padding:24px 28px;scroll-behavior:smooth;}
+.section{display:none;animation:fadeIn 0.15s ease;}
+.section.active{display:block;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+
+/* ── Section Headers ────────────────────────────────── */
+.section-title{font-size:1.25rem;font-weight:800;color:var(--fg);margin-bottom:18px;display:flex;align-items:center;gap:10px;}
+.section-title .icon{font-size:1.3rem;filter:drop-shadow(0 0 10px rgba(34,211,238,0.5));}
+.section-title::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,var(--border-accent),transparent);}
+
+/* ── Cards ──────────────────────────────────────────── */
+.card{background:linear-gradient(180deg,var(--bg-raised2),var(--bg-raised));border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px;margin-bottom:12px;box-shadow:var(--shadow);transition:border-color 0.15s;}
+.card:hover{border-color:#2a3a5c;}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.card-header h3{font-size:0.9rem;font-weight:700;color:var(--accent);display:flex;align-items:center;gap:7px;text-transform:uppercase;letter-spacing:0.6px;font-size:0.78rem;}
+.card-grid{display:grid;gap:12px;}
+.card-grid.cols-2{grid-template-columns:repeat(2,1fr);}
+.card-grid.cols-3{grid-template-columns:repeat(3,1fr);}
+.card-grid.cols-4{grid-template-columns:repeat(4,1fr);}
+
+/* ── Status Dashboard Cards ─────────────────────────── */
+.status-card{position:relative;overflow:hidden;background:linear-gradient(180deg,var(--bg-raised2),var(--bg-raised));border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;cursor:pointer;transition:transform 0.15s,border-color 0.15s,box-shadow 0.15s;box-shadow:var(--shadow);}
+.status-card:hover{transform:translateY(-3px);border-color:var(--border-accent);box-shadow:var(--shadow),var(--glow);}
+.status-card::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:var(--grad);}
+.status-card.sc-battery::before{background:linear-gradient(90deg,#34d399,#22d3ee);}
+.status-card.sc-network::before{background:linear-gradient(90deg,#22d3ee,#818cf8);}
+.status-card.sc-location::before{background:linear-gradient(90deg,#a78bfa,#f472b6);}
+.status-card.sc-storage::before{background:linear-gradient(90deg,#fbbf24,#fb7185);}
+.status-card .stat-ico{position:absolute;right:10px;top:8px;font-size:2rem;opacity:0.14;pointer-events:none;}
+.status-card .label{font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);margin-bottom:4px;display:flex;align-items:center;gap:4px;}
+.status-card .value{font-size:1.35rem;font-weight:800;font-family:ui-monospace,monospace;line-height:1.25;text-shadow:0 2px 12px rgba(0,0,0,0.5);}
+.status-card .sub{font-size:0.75rem;color:var(--fg-dim);margin-top:4px;}
+.status-card .updated{font-size:0.65rem;color:var(--muted);margin-top:8px;}
+.bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin-top:8px;}
+.bar-fill{height:100%;border-radius:3px;transition:width 0.4s ease;background:var(--success);}
+.bar-fill.warn{background:var(--warn);}
+.bar-fill.danger{background:var(--danger);}
+
+/* ── Toggle Switch ──────────────────────────────────── */
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);}
+.toggle-row:last-child{border-bottom:none;}
+.toggle-label{font-size:0.85rem;display:flex;align-items:center;gap:8px;}
+.toggle-label .icon{width:20px;text-align:center;}
+.toggle{position:relative;width:40px;height:22px;flex-shrink:0;}
+.toggle input{opacity:0;width:0;height:0;}
+.toggle .slider{position:absolute;inset:0;background:var(--border);border-radius:11px;cursor:pointer;transition:0.2s;}
+.toggle .slider::before{content:"";position:absolute;width:16px;height:16px;left:3px;bottom:3px;background:var(--fg-dim);border-radius:50%;transition:0.2s;}
+.toggle input:checked+.slider{background:linear-gradient(135deg,var(--accent-dim),#6366f1);box-shadow:0 0 12px rgba(34,211,238,0.5);}
+.toggle input:checked+.slider::before{transform:translateX(18px);background:#fff;box-shadow:0 0 6px rgba(255,255,255,0.7);}
+
+/* ── Buttons ────────────────────────────────────────── */
+.btn{background:var(--grad);color:#04121a;border:none;padding:9px 17px;border-radius:10px;font-weight:700;cursor:pointer;font-size:0.825rem;transition:all 0.15s;display:inline-flex;align-items:center;gap:6px;box-shadow:0 4px 14px rgba(34,211,238,0.25);}
+.btn:hover{filter:brightness(1.12);box-shadow:0 4px 20px rgba(34,211,238,0.4);transform:translateY(-1px);}
+.btn:active{transform:translateY(0) scale(0.98);}
+.btn:disabled{opacity:0.5;cursor:not-allowed;transform:none;}
+.btn.ghost{background:rgba(255,255,255,0.03);color:var(--fg);border:1px solid var(--border);box-shadow:none;}
+.btn.ghost:hover{background:rgba(34,211,238,0.08);border-color:var(--accent);box-shadow:var(--glow);transform:translateY(-1px);}
+.btn.danger{background:linear-gradient(135deg,#f87171,#ef4444);color:#fff;box-shadow:0 4px 14px rgba(239,68,68,0.25);}
+.btn.danger:hover{background:linear-gradient(135deg,#ef4444,#dc2626);}
+.btn.success{background:linear-gradient(135deg,#34d399,#10b981);color:#052e16;box-shadow:0 4px 14px rgba(52,211,153,0.25);}
+.btn.sm{padding:4px 10px;font-size:0.75rem;}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
+
+/* ── Inputs ─────────────────────────────────────────── */
+.input{background:rgba(0,0,0,0.3);border:1px solid var(--border);color:var(--fg);padding:9px 13px;border-radius:10px;font-size:0.85rem;outline:none;width:100%;transition:border-color 0.15s,box-shadow 0.15s;}
+.input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(34,211,238,0.15);}
+select.input{max-width:140px;}
+.input-row{display:flex;gap:8px;align-items:center;margin-bottom:10px;}
+.input-row .input{flex:1;min-width:0;}
+input[type=range]{width:100%;accent-color:var(--accent);}
+
+/* ── Tabs ───────────────────────────────────────────── */
+.tabs{display:flex;gap:2px;margin-bottom:12px;border-bottom:1px solid var(--border);padding-bottom:0;overflow-x:auto;}
+.tab{padding:8px 14px;font-size:0.8rem;color:var(--muted);cursor:pointer;border-radius:var(--radius) var(--radius) 0 0;background:transparent;border:none;border-bottom:2px solid transparent;transition:all 0.15s;white-space:nowrap;}
+.tab:hover{color:var(--fg);}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);background:linear-gradient(180deg,rgba(34,211,238,0.12),transparent);text-shadow:0 0 12px rgba(34,211,238,0.5);}
+.tab-panel{display:none;animation:fadeIn 0.12s;}
+.tab-panel.active{display:block;}
+
+/* ── Pre / Output ───────────────────────────────────── */
+.pre{background:#04090f;border:1px solid var(--border);border-radius:10px;padding:12px;font-family:ui-monospace,monospace;font-size:0.75rem;max-height:350px;overflow:auto;white-space:pre-wrap;word-break:break-word;color:var(--fg-dim);margin-top:8px;box-shadow:inset 0 2px 12px rgba(0,0,0,0.5);}
+
+/* ── Lists ──────────────────────────────────────────── */
+.list{list-style:none;}
+.list li{padding:8px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;font-size:0.82rem;}
+.list li:last-child{border-bottom:none;}
+.list .pkg{font-family:ui-monospace,monospace;color:var(--accent);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+/* ── File tree ──────────────────────────────────────── */
+.fs-tree{font-family:ui-monospace,monospace;font-size:0.78rem;}
+.fs-tree .dir{color:var(--accent);cursor:pointer;padding:4px 0 4px 16px;display:flex;align-items:center;gap:6px;}
+.fs-tree .dir:hover{background:var(--accent-bg);border-radius:4px;}
+.fs-tree .file{color:var(--fg-dim);padding:4px 0 4px 16px;display:flex;align-items:center;gap:6px;}
+
+/* ── Device Info Grid ───────────────────────────────── */
+.info-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px 16px;font-size:0.82rem;}
+.info-grid .label{color:var(--muted);}
+.info-grid .val{font-family:ui-monospace,monospace;word-break:break-all;}
+
+/* ── Live feed ──────────────────────────────────────── */
+.live-img{width:100%;max-height:320px;object-fit:contain;border:1px solid var(--border);border-radius:var(--radius);background:#04090f;min-height:120px;transition:box-shadow 0.3s,border-color 0.3s;}
+.live-on .live-img{border-color:rgba(52,211,153,0.5);box-shadow:0 0 24px rgba(52,211,153,0.18);}
+.live-meta{font-size:0.72rem;color:var(--muted);margin-top:6px;min-height:1.2em;}
+.live-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#555;margin-right:4px;}
+.live-on .live-dot{background:var(--success);box-shadow:0 0 8px var(--success);animation:pulse 1.5s infinite;}
+@keyframes pulse{50%{opacity:.4;}}
+audio.live-audio{width:100%;margin-top:8px;}
+.badge{font-size:0.68rem;padding:2px 8px;border-radius:4px;background:var(--border);color:var(--muted);font-weight:500;}
+.badge.ok{background:var(--success-bg);color:var(--success);}
+.badge.warn{background:var(--warn-bg);color:var(--warn);}
+.badge.err{background:var(--danger-bg);color:var(--danger);}
+
+/* ── Toast ──────────────────────────────────────────── */
+.toast-container{position:fixed;bottom:20px;right:20px;z-index:200;display:flex;flex-direction:column-reverse;gap:8px;}
+.toast{background:var(--bg-raised);border:1px solid var(--border);padding:10px 16px;border-radius:var(--radius);font-size:0.82rem;display:flex;align-items:center;gap:8px;animation:slideUp 0.2s;min-width:200px;max-width:380px;cursor:pointer;}
+.toast.ok{border-left:3px solid var(--success);}
+.toast.err{border-left:3px solid var(--danger);}
+.toast.warn{border-left:3px solid var(--warn);}
+@keyframes slideUp{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:none;}}
+
+/* ── Skeleton loading ───────────────────────────────── */
+.skeleton{background:linear-gradient(90deg,var(--border) 25%,rgba(255,255,255,0.05) 50%,var(--border) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:4px;height:1em;display:inline-block;width:60%;}
+@keyframes shimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
+
+/* ── Modal ──────────────────────────────────────────── */
+.modal-overlay{position:fixed;inset:0;background:rgba(3,6,12,0.8);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:100;}
+.modal-overlay.active{display:flex;}
+.modal{background:linear-gradient(180deg,#141c2e,#0e1524);border:1px solid var(--border-accent);border-radius:16px;padding:30px;width:90%;max-width:440px;max-height:85vh;overflow:auto;box-shadow:var(--shadow),var(--glow);animation:modalIn 0.2s ease;}
+@keyframes modalIn{from{opacity:0;transform:scale(0.95) translateY(10px);}to{opacity:1;transform:none;}}
+.modal h2{font-size:1.15rem;margin-bottom:4px;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:800;}
+.modal .sub{font-size:0.82rem;color:var(--muted);margin-bottom:20px;}
+.modal .input{margin-bottom:12px;}
+.modal .btn{width:100%;justify-content:center;margin-top:4px;}
+.modal .hint{font-size:0.72rem;color:var(--muted);margin-top:12px;}
+
+/* ── File viewer ──────────────────────────────────── */
+.fs-viewer{margin-top:10px;display:none;}
+.fs-viewer.active{display:block;}
+.fs-viewer .pre{max-height:280px;}
+
+/* ── Mobile Bottom Nav ──────────────────────────────── */
+.bottom-nav{display:none;}
+
+/* ── Responsive ─────────────────────────────────────── */
+@media(max-width:768px){
+  .sidebar{display:none;}
+  .bottom-nav{display:flex;position:fixed;bottom:0;left:0;right:0;background:var(--bg-raised);border-top:1px solid var(--border);z-index:20;padding:4px 0 env(safe-area-inset-bottom,4px);}
+  .bottom-nav .bnav{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;font-size:0.6rem;color:var(--muted);background:none;border:none;cursor:pointer;}
+  .bottom-nav .bnav.active{color:var(--accent);}
+  .bottom-nav .bnav .icon{font-size:1.1rem;}
+  .content{padding:16px 12px 80px;}
+  .card-grid.cols-2,.card-grid.cols-3,.card-grid.cols-4{grid-template-columns:1fr;}
+  .info-grid{grid-template-columns:1fr;}
 }
 </style>
 </head>
 <body>
-<header>
-  <h1>📱 OCD Control Panel</h1>
-  <div class="conn">
-    <input id="host" class="input" placeholder="Host (e.g. 192.168.1.50)" value="127.0.0.1">
-    <input id="port" class="input" placeholder="Port" value="18790" style="max-width:80px;">
-    <input id="token" class="input" placeholder="Bearer Token" type="password">
-    <button id="connectBtn" class="btn" onclick="testConnection()">Connect</button>
-    <span class="status"><span id="statusDot" class="status-dot"></span><span id="statusText">Disconnected</span></span>
-  </div>
-</header>
 
-<main>
-  <div class="grid">
-    <!-- Device Info -->
-    <div class="card">
-      <h2>Device Info</h2>
-      <button class="btn" onclick="loadDevice()">🔄 Refresh</button>
-      <div id="deviceInfo" class="device-info" style="margin-top:12px;"></div>
+<div class="app">
+  <!-- ═══ SIDEBAR ═══ -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <h1><span>📱</span> OCD Panel</h1>
+      <div class="conn-status" onclick="showModal('connModal')" title="Connection settings">
+        <span id="sideDot" class="conn-dot"></span>
+        <span id="sideLabel" class="conn-label">Disconnected</span>
+      </div>
     </div>
+    <nav class="nav">
+      <div class="nav-group">
+        <div class="nav-group-label">Overview</div>
+        <button class="nav-item active" data-section="dashboard"><span class="icon">📊</span> Dashboard</button>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-label">Controls</div>
+        <button class="nav-item" data-section="controls"><span class="icon">⚡</span> Quick Controls</button>
+        <button class="nav-item" data-section="input"><span class="icon">👆</span> Input Control</button>
+        <button class="nav-item" data-section="setup"><span class="icon">🛠</span> Device Setup</button>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-label">Live</div>
+        <button class="nav-item" data-section="screen"><span class="icon">🖥</span> Screen</button>
+        <button class="nav-item" data-section="camera"><span class="icon">📷</span> Camera</button>
+        <button class="nav-item" data-section="mic"><span class="icon">🎙</span> Microphone</button>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-label">Device</div>
+        <button class="nav-item" data-section="apps"><span class="icon">📦</span> Apps</button>
+        <button class="nav-item" data-section="files"><span class="icon">📂</span> Files</button>
+        <button class="nav-item" data-section="usb"><span class="icon">💾</span> USB / Storage</button>
+        <button class="nav-item" data-section="launcher"><span class="icon">🏠</span> Launcher</button>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-label">Comms</div>
+        <button class="nav-item" data-section="comms"><span class="icon">💬</span> Communications</button>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-label">System</div>
+        <button class="nav-item" data-section="shell"><span class="icon">⌨</span> Shell</button>
+        <button class="nav-item" data-section="debug"><span class="icon">🔧</span> Debug & Dump</button>
+      </div>
+    </nav>
+    <div class="sidebar-footer">OCD Control Panel v2</div>
+  </aside>
 
-    <!-- Apps -->
-    <div class="card">
-      <h2>Applications</h2>
-      <div class="row">
-        <input id="appFilter" class="input" placeholder="Filter packages..." onkeypress="if(event.key==='Enter') loadApps()">
-        <button class="btn" onclick="loadApps()">List</button>
-      </div>
-      <ul id="appList" class="list"></ul>
-    </div>
+  <!-- ═══ MOBILE BOTTOM NAV ═══ -->
+  <nav class="bottom-nav">
+    <button class="bnav active" data-section="dashboard"><span class="icon">📊</span>Home</button>
+    <button class="bnav" data-section="controls"><span class="icon">⚡</span>Controls</button>
+    <button class="bnav" data-section="screen"><span class="icon">🖥</span>Live</button>
+    <button class="bnav" data-section="apps"><span class="icon">📦</span>Device</button>
+    <button class="bnav" data-section="debug"><span class="icon">🔧</span>System</button>
+  </nav>
 
-    <!-- File System -->
-    <div class="card">
-      <h2>File System</h2>
-      <div class="row">
-        <input id="fsPath" class="input" placeholder="Path (e.g. /sdcard/Download)" value="/sdcard">
-        <button class="btn" onclick="listFs()">List</button>
-        <button class="btn ghost" onclick="navigateFs('..')">⬆ Up</button>
-      </div>
-      <div id="fsTree" class="fs-tree"></div>
-    </div>
+  <!-- ═══ CONTENT ═══ -->
+  <main class="content" id="contentArea">
 
-    <!-- Screenshot -->
-    <div class="card">
-      <h2>Screenshot</h2>
-      <button class="btn success" onclick="takeScreenshot()">📸 Capture</button>
-      <div id="screenshotBox" class="screenshot-box" style="margin-top:12px;"></div>
-    </div>
+    <!-- ─── DASHBOARD ────────────────────────────────── -->
+    <div class="section active" id="sec-dashboard">
+      <div class="section-title"><span class="icon">📊</span> Dashboard</div>
+      <div class="card-grid cols-4" id="dashCards">
+        <div class="status-card sc-battery" onclick="navigateTo('controls')">
+          <span class="stat-ico">🔋</span>
+          <div class="label">Battery</div>
+          <div id="dashBatVal" class="value"><span class="skeleton"></span></div>
+          <div id="dashBatSub" class="sub"></div>
+          <div class="bar"><div id="dashBatBar" class="bar-fill" style="width:0%"></div></div>
+          <div id="dashBatUpd" class="updated"></div>
+        </div>
+        <div class="status-card sc-network" onclick="navigateTo('controls')">
+          <span class="stat-ico">📶</span>
+          <div class="label">Network</div>
+          <div id="dashNetVal" class="value"><span class="skeleton"></span></div>
+          <div id="dashNetSub" class="sub"></div>
+          <div id="dashNetUpd" class="updated"></div>
+        </div>
+        <div class="status-card sc-location">
+          <span class="stat-ico">📍</span>
+          <div class="label">Location</div>
+          <div id="dashLocVal" class="value"><span class="skeleton"></span></div>
+          <div id="dashLocSub" class="sub"></div>
+          <div id="dashLocUpd" class="updated"></div>
+        </div>
+        <div class="status-card sc-storage" onclick="navigateTo('files')">
+          <span class="stat-ico">💾</span>
+          <div class="label">Storage</div>
+          <div id="dashStorVal" class="value"><span class="skeleton"></span></div>
+          <div id="dashStorSub" class="sub"></div>
+          <div class="bar"><div id="dashStorBar" class="bar-fill" style="width:0%"></div></div>
+          <div id="dashStorUpd" class="updated"></div>
+        </div>
+      </div>
 
-    <!-- Input Control -->
-    <div class="card">
-      <h2>Input Control</h2>
-      <div class="tabs">
-        <button class="tab active" onclick="showTab('inputTap')">Tap</button>
-        <button class="tab" onclick="showTab('inputSwipe')">Swipe</button>
-        <button class="tab" onclick="showTab('inputText')">Text</button>
-        <button class="tab" onclick="showTab('inputKey')">Key</button>
-      </div>
-      <div id="inputTap" class="tab-panel active">
-        <div class="row"><input id="tapX" class="input" placeholder="X" type="number"><input id="tapY" class="input" placeholder="Y" type="number"></div>
-        <button class="btn" onclick="sendInput('tap')">Tap</button>
-      </div>
-      <div id="inputSwipe" class="tab-panel">
-        <div class="row"><input id="swipeX1" class="input" placeholder="X1" type="number"><input id="swipeY1" class="input" placeholder="Y1" type="number"></div>
-        <div class="row"><input id="swipeX2" class="input" placeholder="X2" type="number"><input id="swipeY2" class="input" placeholder="Y2" type="number"></div>
-        <div class="row"><input id="swipeDur" class="input" placeholder="Duration (ms)" type="number" value="300"></div>
-        <button class="btn" onclick="sendInput('swipe')">Swipe</button>
-      </div>
-      <div id="inputText" class="tab-panel">
-        <input id="inputTextVal" class="input" placeholder="Text to input" style="margin-bottom:8px;">
-        <button class="btn" onclick="sendInput('text')">Send Text</button>
-      </div>
-      <div id="inputKey" class="tab-panel">
-        <input id="keyCode" class="input" placeholder="Keycode (e.g. 3=HOME, 4=BACK, 66=ENTER)" type="number" style="margin-bottom:8px;">
-        <button class="btn" onclick="sendInput('key')">Send Key</button>
-        <div style="margin-top:8px; font-size:0.75rem; color:var(--muted);">
-          Common: 3=HOME, 4=BACK, 24=VOL_UP, 25=VOL_DOWN, 26=POWER, 66=ENTER, 67=DEL, 123=MOVE_END
+      <div class="card" style="margin-top:12px;">
+        <div class="card-header">
+          <h3>📱 Device Info</h3>
+          <button class="btn sm ghost" onclick="loadDevice()">↻ Refresh</button>
+        </div>
+        <div id="dashDeviceInfo" class="info-grid">
+          <div class="val" style="grid-column:1/-1;"><span class="skeleton" style="width:80%;height:4em;"></span></div>
         </div>
       </div>
     </div>
 
-    <!-- Communications -->
-    <div class="card">
-      <h2>Communications</h2>
-      <div class="tabs">
-        <button class="tab active" onclick="showTab('commSms')">SMS</button>
-        <button class="tab" onclick="showTab('commCall')">Call</button>
-        <button class="tab" onclick="showTab('commNotif')">Notifications</button>
-      </div>
-      <div id="commSms" class="tab-panel active">
-        <div class="row"><input id="smsTo" class="input" placeholder="Phone number"><input id="smsBody" class="input" placeholder="Message"></div>
-        <button class="btn" onclick="sendSms()">Send SMS</button>
-      </div>
-      <div id="commCall" class="tab-panel">
-        <input id="callNumber" class="input" placeholder="Phone number" style="margin-bottom:8px;">
-        <button class="btn success" onclick="makeCall()">📞 Call</button>
-      </div>
-      <div id="commNotif" class="tab-panel">
-        <button class="btn" onclick="loadNotifications()">🔔 Load Notifications</button>
-        <pre id="notifOutput" class="pre" style="margin-top:10px;"></pre>
-      </div>
-    </div>
-
-    <!-- USB / Storage -->
-    <div class="card">
-      <h2>USB / Storage</h2>
-      <button class="btn" onclick="loadUsb()">🔄 Refresh</button>
-      <pre id="usbOutput" class="pre" style="margin-top:10px;"></pre>
-    </div>
-
-    <!-- Launcher / Shortcuts -->
-    <div class="card">
-      <h2>Launcher</h2>
-      <div class="tabs">
-        <button class="tab active" onclick="showTab('launcherHomescreen')">Homescreen</button>
-        <button class="tab" onclick="showTab('launcherShortcut')">Create Shortcut</button>
-      </div>
-      <div id="launcherHomescreen" class="tab-panel active">
-        <button class="btn" onclick="loadHomescreen()">📋 Load Layout</button>
-        <pre id="homescreenOutput" class="pre" style="margin-top:10px;"></pre>
-      </div>
-      <div id="launcherShortcut" class="tab-panel">
-        <div class="row"><input id="scName" class="input" placeholder="Name"><input id="scUrl" class="input" placeholder="URL (http://... or https://...)"></div>
-        <input id="scIcon" class="input" placeholder="Icon path (optional)" style="margin:8px 0;">
-        <button class="btn" onclick="createShortcut()">➕ Create</button>
-      </div>
-    </div>
-
-    <!-- Shell -->
-    <div class="card">
-      <h2>Raw Shell</h2>
-      <div class="row">
-        <input id="shellCmd" class="input" placeholder="Command (e.g. pm, am, getprop, dumpsys)">
-        <input id="shellArgs" class="input" placeholder="Args (space-separated)">
-      </div>
-      <button class="btn" onclick="runShell()">Execute</button>
-      <pre id="shellOutput" class="pre" style="margin-top:10px;"></pre>
-    </div>
-
-    <!-- Debug / Full Dump -->
-    <div class="card">
-      <h2>🔧 Debug & Full Dump</h2>
-      <div class="tabs">
-        <button class="tab active" onclick="showTab('debugDump')">Full Dump</button>
-        <button class="tab" onclick="showTab('debugImei')">IMEI / MEID</button>
-        <button class="tab" onclick="showTab('debugLogcat')">Logcat</button>
-        <button class="tab" onclick="showTab('debugProcesses')">Processes</button>
-        <button class="tab" onclick="showTab('debugNetstat')">Netstat</button>
-        <button class="tab" onclick="showTab('debugLsof')">Open Files</button>
-      </div>
-      <div id="debugDump" class="tab-panel active">
-        <button class="btn success" onclick="loadFullDump()">📦 Generate Full Device Dump</button>
-        <button class="btn ghost" onclick="downloadDump()">⬇️ Download JSON</button>
-        <pre id="dumpOutput" class="pre" style="margin-top:10px;"></pre>
-      </div>
-      <div id="debugImei" class="tab-panel">
-        <button class="btn" onclick="loadImei()">🔍 Get IMEI/MEID</button>
-        <pre id="imeiOutput" class="pre" style="margin-top:10px;"></pre>
-      </div>
-      <div id="debugLogcat" class="tab-panel">
-        <div class="row">
-          <input id="logcatLines" class="input" placeholder="Lines" value="200" style="max-width:80px;">
-          <input id="logcatFilter" class="input" placeholder="Filter (e.g. *:E, MyTag:V)">
+    <!-- ─── QUICK CONTROLS ───────────────────────────── -->
+    <div class="section" id="sec-controls">
+      <div class="section-title"><span class="icon">⚡</span> Quick Controls</div>
+      <div class="card-grid cols-3">
+        <div class="card">
+          <div class="card-header"><h3>🔗 Connectivity</h3></div>
+          <div class="toggle-row">
+            <span class="toggle-label"><span class="icon">📶</span> WiFi</span>
+            <label class="toggle"><input type="checkbox" id="togWifi" onchange="toggleControl('wifi',this.checked)"><span class="slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <span class="toggle-label"><span class="icon">📡</span> Bluetooth</span>
+            <label class="toggle"><input type="checkbox" id="togBt" onchange="toggleControl('bluetooth',this.checked)"><span class="slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <span class="toggle-label"><span class="icon">✈</span> Airplane</span>
+            <label class="toggle"><input type="checkbox" id="togAirplane" onchange="toggleAirplane(this.checked)"><span class="slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <span class="toggle-label"><span class="icon">📍</span> GPS</span>
+            <label class="toggle"><input type="checkbox" id="togGps" onchange="toggleGps(this.checked)"><span class="slider"></span></label>
+          </div>
         </div>
-        <button class="btn" onclick="loadLogcat()">📋 Fetch Logcat</button>
-        <pre id="logcatOutput" class="pre" style="margin-top:10px;"></pre>
-      </div>
-      <div id="debugProcesses" class="tab-panel">
-        <button class="btn" onclick="loadProcesses()">📋 List Processes</button>
-        <pre id="processesOutput" class="pre" style="margin-top:10px;"></pre>
-      </div>
-      <div id="debugNetstat" class="tab-panel">
-        <button class="btn" onclick="loadNetstat()">🌐 Network Connections</button>
-        <pre id="netstatOutput" class="pre" style="margin-top:10px;"></pre>
-      </div>
-      <div id="debugLsof" class="tab-panel">
-        <button class="btn" onclick="loadLsof()">📂 Open Files (lsof)</button>
-        <pre id="lsofOutput" class="pre" style="margin-top:10px;"></pre>
+        <div class="card">
+          <div class="card-header"><h3>🔊 Sound & Display</h3></div>
+          <div style="margin-bottom:14px;">
+            <div style="display:flex;justify-content:space-between;font-size:0.8rem;margin-bottom:4px;"><span>Volume</span><span id="volLabel">—</span></div>
+            <input type="range" id="volSlider" min="0" max="15" value="7" oninput="onVolSlider(this.value)">
+          </div>
+          <div style="margin-bottom:14px;">
+            <div style="display:flex;justify-content:space-between;font-size:0.8rem;margin-bottom:4px;"><span>Brightness</span><span id="briLabel">—</span></div>
+            <input type="range" id="briSlider" min="10" max="255" value="128" oninput="onBriSlider(this.value)">
+            <button class="btn sm ghost" style="margin-top:6px;" onclick="applyBrightness()">Apply</button>
+          </div>
+          <div class="toggle-row" style="border:none;">
+            <span class="toggle-label"><span class="icon">🔔</span> Ring</span>
+            <button class="btn sm ghost" onclick="ringPhone()">Ring 10s</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><h3>⏻ Power</h3></div>
+          <div class="btn-row" style="flex-direction:column;">
+            <button class="btn ghost" onclick="mediaAction('playpause')">⏯ Play/Pause</button>
+            <button class="btn ghost" onclick="mediaAction('next')">⏭ Next Track</button>
+            <button class="btn ghost" onclick="mediaAction('previous')">⏮ Prev Track</button>
+          </div>
+          <hr style="border:none;border-top:1px solid var(--border);margin:12px 0;">
+          <div class="btn-row" style="flex-direction:column;">
+            <button class="btn ghost" onclick="powerAction('screenoff')">⏻ Screen Off</button>
+            <button class="btn ghost" onclick="powerAction('screenon')">☀ Screen On</button>
+            <button class="btn danger" onclick="if(confirm('Reboot the device?'))powerAction('reboot')">↻ Reboot</button>
+            <button class="btn danger" onclick="if(confirm('Shut down the device?'))powerAction('shutdown')">⏻ Shutdown</button>
+          </div>
+        </div>
       </div>
     </div>
-  </div>
-</main>
 
-<div class="toast" id="toast"></div>
+    <!-- ─── INPUT CONTROL ────────────────────────────── -->
+    <div class="section" id="sec-input">
+      <div class="section-title"><span class="icon">👆</span> Input Control</div>
+      <div class="card">
+        <div class="tabs">
+          <button class="tab active" onclick="showTab(event,'inpTap')">Tap</button>
+          <button class="tab" onclick="showTab(event,'inpSwipe')">Swipe</button>
+          <button class="tab" onclick="showTab(event,'inpText')">Text</button>
+          <button class="tab" onclick="showTab(event,'inpKey')">Key</button>
+        </div>
+        <div id="inpTap" class="tab-panel active">
+          <div class="input-row"><input id="tapX" class="input" placeholder="X" type="number"><input id="tapY" class="input" placeholder="Y" type="number"></div>
+          <button class="btn" onclick="sendInput('tap')">Tap</button>
+        </div>
+        <div id="inpSwipe" class="tab-panel">
+          <div class="input-row"><input id="swipeX1" class="input" placeholder="X1" type="number"><input id="swipeY1" class="input" placeholder="Y1" type="number"></div>
+          <div class="input-row"><input id="swipeX2" class="input" placeholder="X2" type="number"><input id="swipeY2" class="input" placeholder="Y2" type="number"></div>
+          <div class="input-row"><input id="swipeDur" class="input" placeholder="Duration (ms)" type="number" value="300"></div>
+          <button class="btn" onclick="sendInput('swipe')">Swipe</button>
+        </div>
+        <div id="inpText" class="tab-panel">
+          <input id="inputTextVal" class="input" placeholder="Text to type" style="margin-bottom:8px;">
+          <button class="btn" onclick="sendInput('text')">Send Text</button>
+        </div>
+        <div id="inpKey" class="tab-panel">
+          <input id="keyCode" class="input" placeholder="Keycode (3=HOME, 4=BACK, 66=ENTER)" type="number" style="margin-bottom:8px;">
+          <button class="btn" onclick="sendInput('key')">Send Key</button>
+          <div style="margin-top:10px;font-size:0.72rem;color:var(--muted);">
+            3=HOME &nbsp; 4=BACK &nbsp; 24=VOL_UP &nbsp; 25=VOL_DOWN &nbsp; 26=POWER &nbsp; 66=ENTER &nbsp; 67=DEL &nbsp; 82=MENU
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── DEVICE SETUP ─────────────────────────────── -->
+    <div class="section" id="sec-setup">
+      <div class="section-title"><span class="icon">🛠</span> Device Setup</div>
+      <div class="card">
+        <p style="font-size:0.82rem;color:var(--muted);margin-bottom:12px;">Provision the device with taps — no physical phone needed.</p>
+        <div class="btn-row">
+          <button class="btn" onclick="setupPost('/ui/open',{screen:'about'})">About phone</button>
+          <button class="btn" onclick="setupPost('/ui/open',{screen:'developer'})">Dev options</button>
+        </div>
+        <div class="btn-row">
+          <button class="btn" onclick="setupPost('/setup/developer',{})">🔨 Tap Build # ×7 (dev mode)</button>
+        </div>
+        <div class="btn-row">
+          <button class="btn ghost" onclick="setupPost('/setup/adb-usb',{})">USB debugging</button>
+          <button class="btn ghost" onclick="setupPost('/setup/wireless-debug',{})">Wireless debugging</button>
+        </div>
+        <div class="input-row" style="margin-top:8px;">
+          <input id="uiText" class="input" placeholder="Tap UI text (e.g. Build number)">
+          <input id="uiRepeat" class="input" placeholder="×" value="1" style="max-width:54px;">
+          <button class="btn ghost" onclick="uiTapText()">Tap</button>
+        </div>
+        <pre id="setupOut" class="pre" style="display:none;"></pre>
+      </div>
+    </div>
+
+    <!-- ─── SCREEN ───────────────────────────────────── -->
+    <div class="section" id="sec-screen">
+      <div class="section-title"><span class="icon">🖥</span> Live Screen</div>
+      <div class="card">
+        <div class="card-header">
+          <h3><span class="live-dot" id="screenLiveDot"></span> Screen Feed <span id="adbBadge" class="badge" style="margin-left:8px;">adb: ?</span></h3>
+        </div>
+        <p style="font-size:0.78rem;color:var(--muted);margin-bottom:10px;">True mirroring needs wireless debugging (OCD_ADB). Without it, falls back to camera.</p>
+        <div class="btn-row">
+          <button id="screenToggle" class="btn success" onclick="toggleFeed('screen')">▶ Start</button>
+          <button class="btn ghost" onclick="snapFeed('screen')">📸 Snap</button>
+          <select id="screenInterval" class="input"><option value="10">10s</option><option value="15" selected>15s</option><option value="30">30s</option></select>
+        </div>
+        <img id="screenImg" class="live-img" alt="">
+        <div id="screenMeta" class="live-meta">idle</div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <h3>⏺ Screen Recording</h3>
+        </div>
+        <p style="font-size:0.78rem;color:var(--muted);margin-bottom:10px;">Records an MP4 on the device (max 3 min per clip). Needs ADB/root for <code>screenrecord</code>.</p>
+        <div class="btn-row">
+          <select id="recSeconds" class="input" style="max-width:100px;"><option value="15">15s</option><option value="30" selected>30s</option><option value="60">60s</option><option value="180">180s</option></select>
+          <button id="recBtn" class="btn danger" onclick="recordScreen()">⏺ Record</button>
+          <button class="btn ghost" onclick="stopScreenRec()">⏹ Stop</button>
+        </div>
+        <div id="recMeta" class="live-meta">idle</div>
+      </div>
+    </div>
+
+    <!-- ─── CAMERA ───────────────────────────────────── -->
+    <div class="section" id="sec-camera">
+      <div class="section-title"><span class="icon">📷</span> Live Camera</div>
+      <div class="card">
+        <div class="card-header">
+          <h3><span class="live-dot" id="cameraLiveDot"></span> Camera Feed</h3>
+        </div>
+        <div class="btn-row">
+          <button id="cameraToggle" class="btn success" onclick="toggleFeed('camera')">▶ Start</button>
+          <button class="btn ghost" onclick="snapFeed('camera')">📸 Snap</button>
+          <select id="cameraId" class="input"><option value="0">rear</option><option value="1">front</option></select>
+          <select id="cameraInterval" class="input"><option value="10">10s</option><option value="15" selected>15s</option><option value="30">30s</option></select>
+        </div>
+        <img id="cameraImg" class="live-img" alt="">
+        <div id="cameraMeta" class="live-meta">idle</div>
+      </div>
+    </div>
+
+    <!-- ─── MICROPHONE ───────────────────────────────── -->
+    <div class="section" id="sec-mic">
+      <div class="section-title"><span class="icon">🎙</span> Microphone</div>
+      <div class="card">
+        <p style="font-size:0.78rem;color:var(--muted);margin-bottom:10px;">Records an AAC clip on the phone, plays it here. Needs Termux:API + Mic permission.</p>
+        <div class="btn-row">
+          <select id="micSeconds" class="input" style="max-width:100px;"><option value="5">5s</option><option value="10" selected>10s</option><option value="30">30s</option><option value="60">60s</option></select>
+          <button id="micBtn" class="btn success" onclick="recordMic()">⏺ Record</button>
+        </div>
+        <div id="micMeta" class="live-meta">idle</div>
+        <audio id="micAudio" class="live-audio" controls style="display:none;"></audio>
+        <div class="btn-row" style="margin-top:8px;">
+          <a id="micDownload" class="btn ghost" style="display:none;text-decoration:none;font-size:0.78rem;" download>⬇ Download clip</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── APPS ─────────────────────────────────────── -->
+    <div class="section" id="sec-apps">
+      <div class="section-title"><span class="icon">📦</span> Applications</div>
+      <div class="card">
+        <div class="input-row">
+          <input id="appFilter" class="input" placeholder="Filter packages..." onkeypress="if(event.key==='Enter')loadApps()">
+          <button class="btn" onclick="loadApps()">List</button>
+        </div>
+        <ul id="appList" class="list"></ul>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3>📲 Install APK</h3></div>
+        <div class="input-row">
+          <input id="apkPath" class="input" placeholder="APK path on device (e.g. /sdcard/Download/app.apk)">
+          <button class="btn" onclick="installApk()">Install</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── FILES ────────────────────────────────────── -->
+    <div class="section" id="sec-files">
+      <div class="section-title"><span class="icon">📂</span> File System</div>
+      <div class="card">
+        <div class="input-row">
+          <input id="fsPath" class="input" placeholder="Path (e.g. /sdcard/Download)" value="/sdcard">
+          <button class="btn" onclick="listFs()">List</button>
+          <button class="btn ghost" onclick="navigateFs('..')">⬆ Up</button>
+        </div>
+        <div id="fsTree" class="fs-tree"></div>
+        <div id="fsViewer" class="fs-viewer">
+          <div class="card-header" style="margin-top:6px;"><h3 id="fsViewName">📄 File</h3></div>
+          <pre id="fsViewContent" class="pre"></pre>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3>⧉ Copy File</h3></div>
+        <div class="input-row">
+          <input id="fsCopySrc" class="input" placeholder="Source path">
+          <input id="fsCopyDst" class="input" placeholder="Destination path">
+        </div>
+        <button class="btn ghost" onclick="copyFile()">Copy</button>
+      </div>
+    </div>
+
+    <!-- ─── USB / STORAGE ────────────────────────────── -->
+    <div class="section" id="sec-usb">
+      <div class="section-title"><span class="icon">💾</span> USB / Storage</div>
+      <div class="card">
+        <div class="btn-row">
+          <button class="btn" onclick="loadUsb()">🔄 Refresh</button>
+        </div>
+        <pre id="usbOutput" class="pre"></pre>
+      </div>
+    </div>
+
+    <!-- ─── LAUNCHER ─────────────────────────────────── -->
+    <div class="section" id="sec-launcher">
+      <div class="section-title"><span class="icon">🏠</span> Launcher</div>
+      <div class="card">
+        <div class="tabs">
+          <button class="tab active" onclick="showTab(event,'lchHome')">Homescreen</button>
+          <button class="tab" onclick="showTab(event,'lchShortcut')">Create Shortcut</button>
+        </div>
+        <div id="lchHome" class="tab-panel active">
+          <button class="btn" onclick="loadHomescreen()">📋 Load Layout</button>
+          <pre id="homescreenOutput" class="pre"></pre>
+        </div>
+        <div id="lchShortcut" class="tab-panel">
+          <div class="input-row"><input id="scName" class="input" placeholder="Name"><input id="scUrl" class="input" placeholder="URL (http://... or https://...)"></div>
+          <input id="scIcon" class="input" placeholder="Icon path (optional)" style="margin-bottom:8px;">
+          <button class="btn" onclick="createShortcut()">➕ Create</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── COMMUNICATIONS ───────────────────────────── -->
+    <div class="section" id="sec-comms">
+      <div class="section-title"><span class="icon">💬</span> Communications</div>
+      <div class="card">
+        <div class="tabs">
+          <button class="tab active" onclick="showTab(event,'comSms')">SMS</button>
+          <button class="tab" onclick="showTab(event,'comCall')">Call</button>
+          <button class="tab" onclick="showTab(event,'comNotif')">Notifications</button>
+          <button class="tab" onclick="showTab(event,'comContacts')">Contacts</button>
+          <button class="tab" onclick="showTab(event,'comClip')">Clipboard</button>
+          <button class="tab" onclick="showTab(event,'comPush')">Push Notify</button>
+          <button class="tab" onclick="showTab(event,'comCal')">Calendar</button>
+        </div>
+        <div id="comSms" class="tab-panel active">
+          <div class="input-row"><input id="smsTo" class="input" placeholder="Phone number"><input id="smsBody" class="input" placeholder="Message"></div>
+          <button class="btn" onclick="sendSms()">Send SMS</button>
+        </div>
+        <div id="comCall" class="tab-panel">
+          <input id="callNumber" class="input" placeholder="Phone number" style="margin-bottom:8px;">
+          <button class="btn success" onclick="makeCall()">📞 Call</button>
+        </div>
+        <div id="comNotif" class="tab-panel">
+          <button class="btn" onclick="loadNotifications()">🔔 Load Notifications</button>
+          <pre id="notifOutput" class="pre"></pre>
+        </div>
+        <div id="comContacts" class="tab-panel">
+          <button class="btn" onclick="loadContacts()">👤 Load Contacts</button>
+          <pre id="contactsOutput" class="pre"></pre>
+        </div>
+        <div id="comClip" class="tab-panel">
+          <div class="btn-row">
+            <button class="btn" onclick="loadClipboard()">📋 Get Clipboard</button>
+          </div>
+          <pre id="clipOutput" class="pre"></pre>
+          <div class="input-row" style="margin-top:8px;">
+            <input id="clipText" class="input" placeholder="Text to set on device clipboard">
+            <button class="btn ghost" onclick="setClipboard()">Set</button>
+          </div>
+        </div>
+        <div id="comPush" class="tab-panel">
+          <div class="input-row"><input id="pushTitle" class="input" placeholder="Title"><input id="pushBody" class="input" placeholder="Message"></div>
+          <button class="btn" onclick="pushNotify()">🔔 Send to Phone</button>
+        </div>
+        <div id="comCal" class="tab-panel">
+          <div class="btn-row">
+            <button class="btn" onclick="loadCalendar()">📅 Load Events</button>
+            <button class="btn ghost" onclick="loadAlarms()">⏰ List Alarms</button>
+          </div>
+          <pre id="calOutput" class="pre"></pre>
+          <div class="input-row" style="margin-top:8px;">
+            <input id="alarmHour" class="input" placeholder="HH" type="number" min="0" max="23" style="max-width:70px;">
+            <input id="alarmMin" class="input" placeholder="MM" type="number" min="0" max="59" style="max-width:70px;">
+            <input id="alarmMsg" class="input" placeholder="Label (optional)">
+            <button class="btn ghost" onclick="setAlarm()">Set Alarm</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── SHELL ────────────────────────────────────── -->
+    <div class="section" id="sec-shell">
+      <div class="section-title"><span class="icon">⌨</span> Raw Shell</div>
+      <div class="card">
+        <div class="input-row">
+          <input id="shellCmd" class="input" placeholder="Command (e.g. pm, am, getprop, dumpsys)">
+          <input id="shellArgs" class="input" placeholder="Args (space-separated)">
+        </div>
+        <button class="btn" onclick="runShell()">Execute</button>
+        <pre id="shellOutput" class="pre"></pre>
+      </div>
+    </div>
+
+    <!-- ─── DEBUG & DUMP ─────────────────────────────── -->
+    <div class="section" id="sec-debug">
+      <div class="section-title"><span class="icon">🔧</span> Debug & Full Dump</div>
+      <div class="card">
+        <div class="tabs">
+          <button class="tab active" onclick="showTab(event,'dbgDump')">Full Dump</button>
+          <button class="tab" onclick="showTab(event,'dbgImei')">IMEI / MEID</button>
+          <button class="tab" onclick="showTab(event,'dbgLogcat')">Logcat</button>
+          <button class="tab" onclick="showTab(event,'dbgProc')">Processes</button>
+          <button class="tab" onclick="showTab(event,'dbgNet')">Netstat</button>
+          <button class="tab" onclick="showTab(event,'dbgLsof')">Open Files</button>
+        </div>
+        <div id="dbgDump" class="tab-panel active">
+          <div class="btn-row">
+            <button class="btn success" onclick="loadFullDump()">📦 Generate Full Device Dump</button>
+            <button class="btn ghost" onclick="downloadDump()">⬇ Download JSON</button>
+          </div>
+          <pre id="dumpOutput" class="pre"></pre>
+        </div>
+        <div id="dbgImei" class="tab-panel">
+          <button class="btn" onclick="loadImei()">🔍 Get IMEI/MEID</button>
+          <pre id="imeiOutput" class="pre"></pre>
+        </div>
+        <div id="dbgLogcat" class="tab-panel">
+          <div class="input-row">
+            <input id="logcatLines" class="input" placeholder="Lines" value="200" style="max-width:80px;">
+            <input id="logcatFilter" class="input" placeholder="Filter (e.g. *:E, MyTag:V)">
+          </div>
+          <button class="btn" onclick="loadLogcat()">📋 Fetch Logcat</button>
+          <pre id="logcatOutput" class="pre"></pre>
+        </div>
+        <div id="dbgProc" class="tab-panel">
+          <button class="btn" onclick="loadProcesses()">📋 List Processes</button>
+          <pre id="processesOutput" class="pre"></pre>
+        </div>
+        <div id="dbgNet" class="tab-panel">
+          <button class="btn" onclick="loadNetstat()">🌐 Network Connections</button>
+          <pre id="netstatOutput" class="pre"></pre>
+        </div>
+        <div id="dbgLsof" class="tab-panel">
+          <button class="btn" onclick="loadLsof()">📂 Open Files (lsof)</button>
+          <pre id="lsofOutput" class="pre"></pre>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ═══ CONNECTION MODAL ═══ -->
+<div class="modal-overlay" id="connModal">
+  <div class="modal">
+    <h2>🔌 Connect to Device</h2>
+    <div class="sub">Enter your OCD daemon endpoint and token from Termux.</div>
+    <input id="connEndpoint" class="input" placeholder="Endpoint URL (e.g. https://api.example.com)">
+    <input id="connToken" class="input" placeholder="Bearer Token" type="password">
+    <button class="btn" onclick="connectFromModal()">Connect</button>
+    <button class="btn ghost" style="margin-top:8px;" onclick="hideModal('connModal')">Cancel</button>
+    <div class="hint">Get these from Termux after running start.sh. You can also use URL params: ?api=...&token=...</div>
+  </div>
+</div>
+
+<!-- ═══ TOASTS ═══ -->
+<div class="toast-container" id="toastContainer"></div>
 
 <script>
+/* ═══════════════════════════════════════════════════════
+   API Layer
+   ═══════════════════════════════════════════════════════ */
 const API = {
-  base: '',
-  token: '',
-  async request(path, options = {}) {
-    const url = `${this.base}${path}`;
-    const headers = {
-      'Content-Type': 'application/json',
-      'X-OCD-Token': this.token
-    };
-    const res = await fetch(url, { ...options, headers });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+  base: '', token: '',
+  async request(path, opts = {}) {
+    const res = await fetch(`${this.base}${path}`, {
+      ...opts,
+      headers: { 'Content-Type': 'application/json', 'X-OCD-Token': this.token },
+      mode: 'cors'
+    });
+    let data = {};
+    const ct = res.headers.get('content-type') || '';
+    if (ct.includes('application/json')) data = await res.json().catch(() => ({}));
+    else data = await res.text().catch(() => '');
+    if (!res.ok) throw new Error((data && data.error) || `HTTP ${res.status}`);
     return data;
   },
-  get(path) { return this.request(path); },
-  post(path, body) { return this.request(path, { method: 'POST', body: JSON.stringify(body) }); }
+  get(p) { return this.request(p); },
+  post(p, body) { return this.request(p, { method: 'POST', body: JSON.stringify(body) }); }
 };
 
-function setStatus(ok, msg) {
-  document.getElementById('statusDot').classList.toggle('ok', ok);
-  document.getElementById('statusText').textContent = msg;
+function normalizeEndpoint(raw) {
+  let v = (raw || '').trim();
+  if (!v) return '';
+  if (!/^https?:\/\//i.test(v)) v = 'https://' + v;
+  return v.replace(/\/+$/, '');
 }
 
-function toast(msg, ok = true) {
-  const t = document.getElementById('toast');
+/* ═══════════════════════════════════════════════════════
+   Toast System
+   ═══════════════════════════════════════════════════════ */
+function toast(msg, type = 'ok') {
+  const c = document.getElementById('toastContainer');
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
   t.textContent = msg;
-  t.className = 'toast show ' + (ok ? 'ok' : 'err');
-  setTimeout(() => t.classList.remove('show'), 3000);
+  t.onclick = () => t.remove();
+  c.appendChild(t);
+  setTimeout(() => { if (t.parentNode) t.remove(); }, 4000);
 }
 
-function showTab(id) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-  event.target.classList.add('active');
+/* ═══════════════════════════════════════════════════════
+   Navigation
+   ═══════════════════════════════════════════════════════ */
+function navigateTo(section) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelectorAll('.bnav').forEach(n => n.classList.remove('active'));
+  const sec = document.getElementById('sec-' + section);
+  if (sec) sec.classList.add('active');
+  document.querySelectorAll(`[data-section="${section}"]`).forEach(n => n.classList.add('active'));
+  document.getElementById('contentArea').scrollTop = 0;
+  onSectionEnter(section);
+}
+
+document.querySelectorAll('.nav-item, .bnav').forEach(btn => {
+  btn.addEventListener('click', () => navigateTo(btn.dataset.section));
+});
+
+/* ═══════════════════════════════════════════════════════
+   Tabs
+   ═══════════════════════════════════════════════════════ */
+function showTab(e, id) {
+  const container = e.target.closest('.card') || e.target.closest('.section');
+  container.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  container.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  e.target.classList.add('active');
   document.getElementById(id).classList.add('active');
 }
 
-async function testConnection() {
-  const host = document.getElementById('host').value.trim();
-  const port = document.getElementById('port').value.trim();
-  const token = document.getElementById('token').value.trim();
-  if (!host || !port || !token) return toast('Fill all fields', false);
-  API.base = `http://${host}:${port}`;
+/* ═══════════════════════════════════════════════════════
+   Modals
+   ═══════════════════════════════════════════════════════ */
+function showModal(id) { document.getElementById(id).classList.add('active'); }
+function hideModal(id) { document.getElementById(id).classList.remove('active'); }
+
+/* ═══════════════════════════════════════════════════════
+   Connection & Onboarding
+   ═══════════════════════════════════════════════════════ */
+function setStatus(ok, msg) {
+  document.getElementById('sideDot').classList.toggle('ok', ok);
+  document.getElementById('sideLabel').textContent = msg;
+}
+
+async function testConnection(endpoint, token) {
+  endpoint = normalizeEndpoint(endpoint || document.getElementById('connEndpoint')?.value || localStorage.getItem('ocd_endpoint'));
+  token = token || document.getElementById('connToken')?.value?.trim() || localStorage.getItem('ocd_token') || '';
+  if (!endpoint || !token) { showModal('connModal'); return false; }
+  API.base = endpoint;
   API.token = token;
   try {
     const data = await API.get('/health');
-    setStatus(true, `Connected • ${data.android} • ${data.root}`);
+    setStatus(true, `${data.android || 'Android'} • root: ${data.rootAccess ? 'yes' : 'no'}`);
+    const adbB = document.getElementById('adbBadge');
+    if (adbB) { adbB.textContent = `adb: ${data.adb || 'none'}`; adbB.className = `badge ${data.adb ? 'ok' : 'warn'}`; }
     toast('Connected successfully');
+    localStorage.setItem('ocd_endpoint', endpoint);
+    localStorage.setItem('ocd_token', token);
+    if (document.getElementById('connEndpoint')) document.getElementById('connEndpoint').value = endpoint;
+    if (document.getElementById('connToken')) document.getElementById('connToken').value = token;
+    hideModal('connModal');
     loadDevice();
+    startDashTimer();
+    return true;
   } catch (e) {
-    setStatus(false, 'Failed');
-    toast(e.message, false);
+    setStatus(false, 'Connection failed');
+    toast(e.message, 'err');
+    return false;
   }
 }
 
-function renderDevice(info) {
-  const el = document.getElementById('deviceInfo');
-  el.innerhtml = '';
-  const fields = [
-    ['Model', info.model], ['Brand', info.brand], ['Android', info.android],
-    ['SDK', info.sdk], ['Serial', info.serial], ['Root', info.root],
-    ['ADB', info.adb || 'none'], ['Apps', info.installedApps]
-  ];
-  fields.forEach(([label, value]) => {
-    el.innerHTML += `<div class="label">${label}</div><div class="value">${value || '—'}</div>`;
-  });
+function connectFromModal() {
+  const ep = document.getElementById('connEndpoint').value.trim();
+  const tk = document.getElementById('connToken').value.trim();
+  if (!ep || !tk) return toast('Fill endpoint + token', 'err');
+  testConnection(ep, tk);
 }
 
+async function initConnection() {
+  const params = new URLSearchParams(location.search);
+  let endpoint = params.get('api') || localStorage.getItem('ocd_endpoint') || '';
+  let token = params.get('token') || localStorage.getItem('ocd_token') || '';
+  if (!endpoint) {
+    try {
+      const r = await fetch('virtual-phone.json', { cache: 'no-store' });
+      if (r.ok) {
+        const cfg = await r.json();
+        endpoint = (cfg.api || '').replace(/\/+$/, '');
+        token = token || cfg.token || '';
+      }
+    } catch {}
+  }
+  if (endpoint && token) {
+    setStatus(false, 'Connecting...');
+    const ok = await testConnection(endpoint, token);
+    if (!ok) showModal('connModal');
+  } else {
+    showModal('connModal');
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   Dashboard Auto-Refresh
+   ═══════════════════════════════════════════════════════ */
+let dashTimer = null;
+const DASH_INTERVAL = 15000;
+
+function refreshDashboard() {
+  refreshBattery();
+  refreshNetwork();
+  refreshLocation();
+  refreshStorage();
+}
+
+function startDashTimer() {
+  stopDashTimer();
+  refreshDashboard();
+  dashTimer = setInterval(refreshDashboard, DASH_INTERVAL);
+}
+function stopDashTimer() { if (dashTimer) { clearInterval(dashTimer); dashTimer = null; } }
+
+function timeAgo() { return new Date().toLocaleTimeString(); }
+
+async function refreshBattery() {
+  try {
+    const d = await API.get('/battery');
+    const pct = d.battery.capacity_percent || d.battery.termux?.percentage || '—';
+    const status = d.battery.status || d.battery.termux?.status || '';
+    const charging = /charg|full/i.test(status);
+    document.getElementById('dashBatVal').textContent = `${pct}%`;
+    document.getElementById('dashBatSub').textContent = charging ? '⚡ Charging' : status || '';
+    const bar = document.getElementById('dashBatBar');
+    const p = parseInt(pct) || 0;
+    bar.style.width = p + '%';
+    bar.className = 'bar-fill' + (p < 20 ? ' danger' : p < 50 ? ' warn' : '');
+    document.getElementById('dashBatUpd').textContent = timeAgo();
+  } catch (e) {
+    document.getElementById('dashBatVal').textContent = '—';
+    document.getElementById('dashBatSub').textContent = 'unavailable';
+  }
+}
+
+async function refreshNetwork() {
+  try {
+    const d = await API.get('/network');
+    const n = d.network;
+    let primary = 'Unknown';
+    if (n.wifiEnabled && n.ssid) primary = n.ssid;
+    else if (n.wifiEnabled) primary = 'WiFi on';
+    else if (n.mobileData) primary = 'Mobile data';
+    else if (n.airplaneMode) primary = '✈ Airplane mode';
+    else primary = 'Offline';
+    document.getElementById('dashNetVal').textContent = primary;
+    const sub = [n.ipAddress, n.wifiStatus].filter(Boolean).join(' • ');
+    document.getElementById('dashNetSub').textContent = sub || '';
+    document.getElementById('dashNetUpd').textContent = timeAgo();
+  } catch (e) {
+    document.getElementById('dashNetVal').textContent = '—';
+    document.getElementById('dashNetSub').textContent = 'unavailable';
+  }
+}
+
+async function refreshLocation() {
+  try {
+    const d = await API.get('/location');
+    const loc = d.location;
+    if (loc.gps) {
+      document.getElementById('dashLocVal').textContent = `${loc.gps.latitude?.toFixed(4) || '—'}, ${loc.gps.longitude?.toFixed(4) || '—'}`;
+      document.getElementById('dashLocSub').textContent = `±${loc.gps.accuracy || '?'}m (GPS)`;
+    } else if (loc.network) {
+      document.getElementById('dashLocVal').textContent = `${loc.network.latitude?.toFixed(4) || '—'}, ${loc.network.longitude?.toFixed(4) || '—'}`;
+      document.getElementById('dashLocSub').textContent = `±${loc.network.accuracy || '?'}m (network)`;
+    } else {
+      document.getElementById('dashLocVal').textContent = '—';
+      document.getElementById('dashLocSub').textContent = loc.hint || 'No location data';
+    }
+    document.getElementById('dashLocUpd').textContent = timeAgo();
+  } catch (e) {
+    document.getElementById('dashLocVal').textContent = '—';
+    document.getElementById('dashLocSub').textContent = 'unavailable';
+  }
+}
+
+async function refreshStorage() {
+  try {
+    const d = await API.get('/systeminfo');
+    const s = d.info?.storage;
+    if (s) {
+      document.getElementById('dashStorVal').textContent = `${s.used || '—'}`;
+      document.getElementById('dashStorSub').textContent = `${s.used} / ${s.total} (${s.percent || '?'})`;
+      const bar = document.getElementById('dashStorBar');
+      const p = parseInt(s.percent) || 0;
+      bar.style.width = p + '%';
+      bar.className = 'bar-fill' + (p > 90 ? ' danger' : p > 75 ? ' warn' : '');
+    } else {
+      document.getElementById('dashStorVal').textContent = '—';
+      document.getElementById('dashStorSub').textContent = '';
+    }
+    document.getElementById('dashStorUpd').textContent = timeAgo();
+  } catch (e) {
+    document.getElementById('dashStorVal').textContent = '—';
+    document.getElementById('dashStorSub').textContent = 'unavailable';
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   Device Info
+   ═══════════════════════════════════════════════════════ */
 async function loadDevice() {
   try {
-    const data = await API.get('/device');
-    renderDevice(data.device);
-  } catch (e) { toast(e.message, false); }
+    const d = await API.get('/device');
+    const info = d.device;
+    const el = document.getElementById('dashDeviceInfo');
+    const fields = [
+      ['Model', info.model], ['Brand', info.brand], ['Android', info.android],
+      ['SDK', info.sdk], ['Serial', info.serial], ['Root', info.root],
+      ['ADB', info.adb || 'none'], ['Apps', info.installedApps]
+    ];
+    el.innerHTML = fields.map(([k, v]) => `<div class="label">${k}</div><div class="val">${v || '—'}</div>`).join('');
+  } catch (e) { toast(e.message, 'err'); }
 }
 
-async function loadApps() {
-  const filter = document.getElementById('appFilter').value.trim();
+/* ═══════════════════════════════════════════════════════
+   Quick Controls
+   ═══════════════════════════════════════════════════════ */
+async function loadControlStates() {
   try {
-    const data = await API.get(`/apps${filter ? '?filter=' + encodeURIComponent(filter) : ''}`);
-    const list = document.getElementById('appList');
-    list.innerHTML = data.packages.map(pkg => `
-      <li>
-        <span class="pkg">${pkg}</span>
-        <div class="row" style="margin:0;">
-          <button class="btn ghost" onclick="launchApp('${pkg}')" style="padding:4px 8px;font-size:0.75rem;">Launch</button>
-          <button class="btn ghost danger" onclick="stopApp('${pkg}')" style="padding:4px 8px;font-size:0.75rem;">Stop</button>
-          <button class="btn ghost danger" onclick="uninstallApp('${pkg}')" style="padding:4px 8px;font-size:0.75rem;">Uninstall</button>
-        </div>
-      </li>
-    `).join('');
-  } catch (e) { toast(e.message, false); }
+    const d = await API.get('/network');
+    const n = d.network;
+    document.getElementById('togWifi').checked = !!n.wifiEnabled;
+    document.getElementById('togAirplane').checked = !!n.airplaneMode;
+  } catch {}
+  try {
+    const d = await API.post('/bluetooth', { action: 'status' });
+    const txt = JSON.stringify(d.bluetooth || d).toLowerCase();
+    if (/enabled["'\s:]+true|state["'\s:]+(on|enabled)|"enabled"/.test(txt) || (txt.includes('enabled') && !txt.includes('disabled') && !txt.includes('false'))) {
+      document.getElementById('togBt').checked = true;
+    }
+  } catch {}
+  try {
+    const d = await API.get('/brightness');
+    if (d.brightness !== undefined) document.getElementById('briSlider').value = d.brightness;
+    document.getElementById('briLabel').textContent = d.brightness || '—';
+  } catch {}
+  try {
+    const d = await API.get('/volume');
+    const musicVol = d.volume?.current_music || '—';
+    document.getElementById('volLabel').textContent = musicVol;
+  } catch {}
 }
 
-async function launchApp(pkg) {
+async function toggleControl(type, on) {
+  const action = on ? 'enable' : 'disable';
   try {
-    await API.post('/app/launch', { pkg });
-    toast(`Launched ${pkg}`);
-  } catch (e) { toast(e.message, false); }
-}
-async function stopApp(pkg) {
-  try {
-    await API.post('/app/stop', { pkg });
-    toast(`Stopped ${pkg}`);
-  } catch (e) { toast(e.message, false); }
-}
-async function uninstallApp(pkg) {
-  if (!confirm(`Uninstall ${pkg}?`)) return;
-  try {
-    await API.post('/app/uninstall', { pkg });
-    toast(`Uninstalled ${pkg}`);
-    loadApps();
-  } catch (e) { toast(e.message, false); }
+    if (type === 'wifi') await API.post('/wifi', { action });
+    else if (type === 'bluetooth') await API.post('/bluetooth', { action });
+    toast(`${type} ${on ? 'enabled' : 'disabled'}`);
+  } catch (e) { toast(e.message, 'err'); }
 }
 
-let currentFsPath = '/sdcard';
-async function listFs() {
-  const path = document.getElementById('fsPath').value.trim() || currentFsPath;
-  currentFsPath = path;
+async function toggleAirplane(on) {
   try {
-    const data = await API.get('/fs/list?path=' + encodeURIComponent(path));
-    const lines = data.listing.trim().split('\n').slice(1);
-    const tree = document.getElementById('fsTree');
-    tree.innerHTML = '<ul>' + lines.map(line => {
-      const parts = line.trim().split(/\s+/);
-      if (parts.length < 9) return '';
-      const perms = parts[0];
-      const name = parts.slice(8).join(' ');
-      const isDir = perms.startsWith('d');
-      return `<li class="${isDir ? 'dir' : 'file'}"${isDir ? ` onclick="navigateFs('${path.replace(/\/$/, '')}/${name}')"` : ''}>${name}</li>`;
-    }).join('') + '</ul>';
-  } catch (e) { toast(e.message, false); }
-}
-function navigateFs(path) {
-  document.getElementById('fsPath').value = path;
-  listFs();
+    await API.post('/airplane', { enabled: on });
+    toast(`Airplane mode ${on ? 'on' : 'off'}`);
+  } catch (e) { toast(e.message, 'err'); }
 }
 
-async function takeScreenshot() {
+async function toggleGps(on) {
   try {
-    const data = await API.post('/screenshot', { path: `Pictures/ocd-panel-${Date.now()}.png` });
-    const box = document.getElementById('screenshotBox');
-    box.innerHTML = `<img src="${API.base}/fs/read?path=${encodeURIComponent(data.path)}" alt="Screenshot">`;
-    toast('Screenshot captured');
-  } catch (e) { toast(e.message, false); }
+    await API.post('/gps', { enabled: on });
+    toast(`GPS ${on ? 'enabled' : 'disabled'}`);
+  } catch (e) { toast(e.message, 'err'); }
 }
 
+let volDebounce = null;
+function onVolSlider(val) {
+  document.getElementById('volLabel').textContent = val;
+  clearTimeout(volDebounce);
+  volDebounce = setTimeout(() => API.post('/volume', { level: +val, stream: 'music' }).catch(() => {}), 300);
+}
+
+let briDebounce = null;
+function onBriSlider(val) {
+  document.getElementById('briLabel').textContent = val;
+}
+
+async function applyBrightness() {
+  const val = +document.getElementById('briSlider').value;
+  try { await API.post('/brightness', { level: val }); toast('Brightness set'); }
+  catch (e) { toast(e.message, 'err'); }
+}
+
+async function ringPhone() {
+  try { await API.post('/ring', { duration: 10 }); toast('Phone ringing'); }
+  catch (e) { toast(e.message, 'err'); }
+}
+
+async function mediaAction(action) {
+  // Daemon accepts play/pause/next/previous/stop; KEYCODE_MEDIA_PLAY_PAUSE toggles.
+  const act = action === 'playpause' ? 'pause' : action;
+  try { await API.post('/media', { action: act }); toast(`Media: ${action}`); }
+  catch (e) { toast(e.message, 'err'); }
+}
+
+async function powerAction(action) {
+  try { await API.post('/power', { action }); toast(`Power: ${action}`); }
+  catch (e) { toast(e.message, 'err'); }
+}
+
+/* ═══════════════════════════════════════════════════════
+   Input Control
+   ═══════════════════════════════════════════════════════ */
 async function sendInput(type) {
   let body = {};
   if (type === 'tap') { body.x = +document.getElementById('tapX').value; body.y = +document.getElementById('tapY').value; }
   else if (type === 'swipe') { body.x1 = +document.getElementById('swipeX1').value; body.y1 = +document.getElementById('swipeY1').value; body.x2 = +document.getElementById('swipeX2').value; body.y2 = +document.getElementById('swipeY2').value; body.duration = +document.getElementById('swipeDur').value; }
   else if (type === 'text') { body.text = document.getElementById('inputTextVal').value; }
   else if (type === 'key') { body.key = +document.getElementById('keyCode').value; }
-  try {
-    await API.post('/input/' + type, body);
-    toast(`Input ${type} sent`);
-  } catch (e) { toast(e.message, false); }
+  try { await API.post('/input/' + type, body); toast(`Input ${type} sent`); }
+  catch (e) { toast(e.message, 'err'); }
 }
 
-async function sendSms() {
-  const to = document.getElementById('smsTo').value.trim();
-  const body = document.getElementById('smsBody').value.trim();
-  if (!to || !body) return toast('Fill both fields', false);
+/* ═══════════════════════════════════════════════════════
+   Device Setup
+   ═══════════════════════════════════════════════════════ */
+async function setupPost(path, body) {
   try {
-    await API.post('/sms', { to, body });
-    toast('SMS sent');
-  } catch (e) { toast(e.message, false); }
+    const data = await API.post(path, body);
+    const out = document.getElementById('setupOut');
+    out.style.display = 'block';
+    out.textContent = JSON.stringify(data, null, 2);
+    toast('Done: ' + path);
+  } catch (e) { toast(e.message, 'err'); }
 }
 
-async function makeCall() {
-  const number = document.getElementById('callNumber').value.trim();
-  if (!number) return toast('Enter number', false);
-  try {
-    await API.post('/call', { number });
-    toast('Call initiated');
-  } catch (e) { toast(e.message, false); }
+async function uiTapText() {
+  const text = document.getElementById('uiText').value.trim();
+  const repeat = Math.max(1, parseInt(document.getElementById('uiRepeat').value || '1', 10));
+  if (!text) return toast('Enter UI text', 'err');
+  setupPost('/ui/tap', { text, repeat });
 }
 
-async function loadNotifications() {
-  try {
-    const data = await API.get('/notifications');
-    document.getElementById('notifOutput').textContent = JSON.stringify(data, null, 2);
-  } catch (e) { toast(e.message, false); }
+/* ═══════════════════════════════════════════════════════
+   Live Feeds (Screen / Camera)
+   ═══════════════════════════════════════════════════════ */
+const feeds = { screen: null, camera: null };
+
+function toggleFeed(type) {
+  if (feeds[type]) { stopFeed(type); } else { startFeed(type); }
 }
 
+function startFeed(type) {
+  const interval = +(document.getElementById(type === 'screen' ? 'screenInterval' : 'cameraInterval').value) * 1000;
+  const btn = document.getElementById(type + 'Toggle');
+  const dot = document.getElementById(type + 'LiveDot');
+  btn.textContent = '⏹ Stop';
+  btn.className = 'btn danger';
+  dot?.closest('.card')?.classList.add('live-on');
+  snapFeed(type);
+  feeds[type] = setInterval(() => snapFeed(type), interval);
+}
+
+function stopFeed(type) {
+  if (feeds[type]) { clearInterval(feeds[type]); feeds[type] = null; }
+  const btn = document.getElementById(type + 'Toggle');
+  const dot = document.getElementById(type + 'LiveDot');
+  btn.textContent = '▶ Start';
+  btn.className = 'btn success';
+  dot?.closest('.card')?.classList.remove('live-on');
+}
+
+async function snapFeed(type) {
+  try {
+    const body = type === 'camera'
+      ? { path: `Pictures/ocd-cam-${Date.now()}.jpg`, b64: true, camera_id: document.getElementById('cameraId').value }
+      : { path: `Pictures/ocd-screen-${Date.now()}.png`, b64: true };
+    const ep = type === 'camera' ? '/camera' : '/screenshot';
+    const d = type === 'camera'
+      ? await API.post(ep, { action: 'photo', camera_id: body.camera_id, b64: true })
+      : await API.post(ep, body);
+    const img = document.getElementById(type + 'Img');
+    const meta = document.getElementById(type + 'Meta');
+    if (d.imageBase64) {
+      img.src = `data:image/${type === 'camera' ? 'jpeg' : 'png'};base64,${d.imageBase64}`;
+    } else if (d.path) {
+      img.src = `${API.base}/fs/read?path=${encodeURIComponent(d.path)}&token=${encodeURIComponent(API.token)}`;
+    }
+    if (type === 'screen' && d.adb !== undefined) {
+      document.getElementById('adbBadge').textContent = `adb: ${d.adb || 'none'}`;
+      document.getElementById('adbBadge').className = `badge ${d.adb ? 'ok' : 'warn'}`;
+    }
+    meta.textContent = `Updated ${new Date().toLocaleTimeString()} • ${d.size ? (d.size / 1024).toFixed(0) + 'KB' : ''}`;
+  } catch (e) {
+    document.getElementById(type + 'Meta').textContent = 'Error: ' + e.message;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   Microphone
+   ═══════════════════════════════════════════════════════ */
+async function recordMic() {
+  const sec = document.getElementById('micSeconds').value;
+  const btn = document.getElementById('micBtn');
+  const meta = document.getElementById('micMeta');
+  btn.disabled = true;
+  btn.textContent = '⏺ Recording...';
+  meta.textContent = `Recording ${sec}s clip...`;
+  try {
+    const d = await API.post('/mic', { action: 'record', seconds: +sec, b64: true });
+    if (d.audioBase64) {
+      const audio = document.getElementById('micAudio');
+      audio.src = `data:audio/m4a;base64,${d.audioBase64}`;
+      audio.style.display = 'block';
+      const dl = document.getElementById('micDownload');
+      dl.href = audio.src;
+      dl.download = `ocd-mic-${Date.now()}.m4a`;
+      dl.style.display = 'inline-flex';
+      meta.textContent = `Recorded ${sec}s • ${(d.size / 1024).toFixed(0)}KB`;
+    } else {
+      meta.textContent = 'Recording complete (no playback data)';
+    }
+  } catch (e) { meta.textContent = 'Error: ' + e.message; }
+  btn.disabled = false;
+  btn.textContent = '⏺ Record';
+}
+
+/* ═══════════════════════════════════════════════════════
+   Apps
+   ═══════════════════════════════════════════════════════ */
+async function loadApps() {
+  const filter = document.getElementById('appFilter').value.trim();
+  try {
+    const d = await API.get(`/apps${filter ? '?filter=' + encodeURIComponent(filter) : ''}`);
+    const list = document.getElementById('appList');
+    list.innerHTML = d.packages.map(pkg => `
+      <li>
+        <span class="pkg">${pkg}</span>
+        <div style="display:flex;gap:4px;margin:0;">
+          <button class="btn sm ghost" onclick="launchApp('${pkg}')">Launch</button>
+          <button class="btn sm ghost" onclick="stopApp('${pkg}')" style="color:var(--warn);">Stop</button>
+          <button class="btn sm ghost" onclick="uninstallApp('${pkg}')" style="color:var(--danger);">Uninstall</button>
+        </div>
+      </li>
+    `).join('');
+    if (!d.packages.length) list.innerHTML = '<li style="color:var(--muted);">No packages found</li>';
+  } catch (e) { toast(e.message, 'err'); }
+}
+
+async function launchApp(pkg) {
+  try { await API.post('/app/launch', { pkg }); toast(`Launched ${pkg}`); }
+  catch (e) { toast(e.message, 'err'); }
+}
+async function stopApp(pkg) {
+  try { await API.post('/app/stop', { pkg }); toast(`Stopped ${pkg}`); }
+  catch (e) { toast(e.message, 'err'); }
+}
+async function uninstallApp(pkg) {
+  if (!confirm(`Uninstall ${pkg}?`)) return;
+  try { await API.post('/app/uninstall', { pkg }); toast(`Uninstalled ${pkg}`); loadApps(); }
+  catch (e) { toast(e.message, 'err'); }
+}
+async function installApk() {
+  const apk = document.getElementById('apkPath').value.trim();
+  if (!apk) return toast('Enter APK path on device', 'err');
+  try { await API.post('/app/install', { apk }); toast('APK installed'); loadApps(); }
+  catch (e) { toast(e.message, 'err'); }
+}
+
+/* ═══════════════════════════════════════════════════════
+   Files
+   ═══════════════════════════════════════════════════════ */
+let currentFsPath = '/sdcard';
+async function listFs() {
+  const p = document.getElementById('fsPath').value.trim() || currentFsPath;
+  currentFsPath = p;
+  try {
+    const d = await API.get('/fs/list?path=' + encodeURIComponent(p));
+    const lines = d.listing.trim().split('\n').slice(1);
+    const tree = document.getElementById('fsTree');
+    const items = lines.map(line => {
+      const parts = line.trim().split(/\s+/);
+      if (parts.length < 9) return '';
+      const perms = parts[0];
+      const name = parts.slice(8).join(' ');
+      const isDir = perms.startsWith('d');
+      const full = `${p.replace(/\/$/, '')}/${name}`;
+      const click = isDir
+        ? `onclick="navigateFs('${full.replace(/'/g, "\\'")}')"`
+        : `onclick="viewFile('${full.replace(/'/g, "\\'")}')" style="cursor:pointer;" title="Click to view"`;
+      return `<div class="${isDir ? 'dir' : 'file'}" ${click}>${isDir ? '📁' : '📄'} ${name}</div>`;
+    }).filter(Boolean).join('');
+    tree.innerHTML = items || '<div style="color:var(--muted);padding:8px;">Empty directory</div>';
+  } catch (e) { toast(e.message, 'err'); }
+}
+function navigateFs(p) { document.getElementById('fsPath').value = p; listFs(); }
+async function viewFile(p) {
+  try {
+    const d = await API.get('/fs/read?path=' + encodeURIComponent(p) + '&maxBytes=50000');
+    document.getElementById('fsViewName').textContent = `📄 ${p} (${d.size ?? '?'} bytes${d.truncated ? ', truncated' : ''})`;
+    document.getElementById('fsViewContent').textContent = d.content ?? JSON.stringify(d, null, 2);
+    document.getElementById('fsViewer').classList.add('active');
+    document.getElementById('fsViewer').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  } catch (e) { toast(e.message, 'err'); }
+}
+async function copyFile() {
+  const src = document.getElementById('fsCopySrc').value.trim();
+  const dst = document.getElementById('fsCopyDst').value.trim();
+  if (!src || !dst) return toast('Enter source + destination', 'err');
+  try { await API.post('/fs/copy', { src, dst }); toast('File copied'); listFs(); }
+  catch (e) { toast(e.message, 'err'); }
+}
+
+/* ═══════════════════════════════════════════════════════
+   USB / Storage
+   ═══════════════════════════════════════════════════════ */
 async function loadUsb() {
   try {
-    const data = await API.get('/usb');
-    document.getElementById('usbOutput').textContent = JSON.stringify(data, null, 2);
-  } catch (e) { toast(e.message, false); }
+    const d = await API.get('/usb');
+    document.getElementById('usbOutput').textContent = JSON.stringify(d, null, 2);
+  } catch (e) { toast(e.message, 'err'); }
 }
 
+/* ═══════════════════════════════════════════════════════
+   Launcher
+   ═══════════════════════════════════════════════════════ */
 async function loadHomescreen() {
   try {
-    const data = await API.get('/launcher');
-    document.getElementById('homescreenOutput').textContent = JSON.stringify(data, null, 2);
-  } catch (e) { toast(e.message, false); }
+    const d = await API.get('/launcher');
+    document.getElementById('homescreenOutput').textContent = JSON.stringify(d, null, 2);
+  } catch (e) { toast(e.message, 'err'); }
 }
-
 async function createShortcut() {
   const name = document.getElementById('scName').value.trim();
   const url = document.getElementById('scUrl').value.trim();
   const icon = document.getElementById('scIcon').value.trim();
-  if (!name || !url) return toast('Name and URL required', false);
-  try {
-    await API.post('/shortcut', { name, url, icon });
-    toast('Shortcut created');
-  } catch (e) { toast(e.message, false); }
+  if (!name || !url) return toast('Name and URL required', 'err');
+  try { await API.post('/shortcut', { name, url, icon }); toast('Shortcut created'); }
+  catch (e) { toast(e.message, 'err'); }
 }
 
+/* ═══════════════════════════════════════════════════════
+   Communications
+   ═══════════════════════════════════════════════════════ */
+async function sendSms() {
+  const to = document.getElementById('smsTo').value.trim();
+  const body = document.getElementById('smsBody').value.trim();
+  if (!to || !body) return toast('Fill both fields', 'err');
+  try { await API.post('/sms', { to, body }); toast('SMS sent'); }
+  catch (e) { toast(e.message, 'err'); }
+}
+async function makeCall() {
+  const number = document.getElementById('callNumber').value.trim();
+  if (!number) return toast('Enter number', 'err');
+  try { await API.post('/call', { number }); toast('Call initiated'); }
+  catch (e) { toast(e.message, 'err'); }
+}
+async function loadNotifications() {
+  try {
+    const d = await API.get('/notifications');
+    document.getElementById('notifOutput').textContent = JSON.stringify(d, null, 2);
+  } catch (e) { toast(e.message, 'err'); }
+}
+async function loadContacts() {
+  try {
+    const d = await API.get('/contacts');
+    document.getElementById('contactsOutput').textContent = JSON.stringify(d, null, 2);
+  } catch (e) { toast(e.message, 'err'); }
+}
+async function loadClipboard() {
+  try {
+    const d = await API.get('/clipboard');
+    document.getElementById('clipOutput').textContent = d.clipboard ?? d.raw ?? JSON.stringify(d, null, 2);
+    if (d.clipboard) document.getElementById('clipText').value = d.clipboard;
+  } catch (e) { toast(e.message, 'err'); }
+}
+async function setClipboard() {
+  const text = document.getElementById('clipText').value;
+  if (text === '') return toast('Enter text to set', 'err');
+  try { await API.post('/clipboard', { text }); toast('Clipboard set'); loadClipboard(); }
+  catch (e) { toast(e.message, 'err'); }
+}
+async function pushNotify() {
+  const title = document.getElementById('pushTitle').value.trim();
+  const content = document.getElementById('pushBody').value.trim();
+  if (!title || !content) return toast('Title + message required', 'err');
+  try { await API.post('/notification', { title, content }); toast('Notification sent to phone'); }
+  catch (e) { toast(e.message, 'err'); }
+}
+async function loadCalendar() {
+  try {
+    const d = await API.get('/calendar');
+    document.getElementById('calOutput').textContent = typeof d.events === 'string' ? d.events : JSON.stringify(d, null, 2);
+  } catch (e) { toast(e.message, 'err'); }
+}
+async function loadAlarms() {
+  try {
+    const d = await API.get('/alarms');
+    document.getElementById('calOutput').textContent = d.alarms || JSON.stringify(d, null, 2);
+  } catch (e) { toast(e.message, 'err'); }
+}
+async function setAlarm() {
+  const hour = +document.getElementById('alarmHour').value;
+  const minute = +document.getElementById('alarmMin').value;
+  const message = document.getElementById('alarmMsg').value.trim() || 'OCD Alarm';
+  if (isNaN(hour) || isNaN(minute)) return toast('Enter hour + minute', 'err');
+  try { await API.post('/alarm', { hour, minute, message }); toast(`Alarm set ${hour}:${String(minute).padStart(2, '0')}`); }
+  catch (e) { toast(e.message, 'err'); }
+}
+
+/* ═══════════════════════════════════════════════════════
+   Screen Recording
+   ═══════════════════════════════════════════════════════ */
+async function recordScreen() {
+  const duration = +document.getElementById('recSeconds').value;
+  const btn = document.getElementById('recBtn');
+  const meta = document.getElementById('recMeta');
+  btn.disabled = true;
+  btn.textContent = '⏺ Recording...';
+  meta.textContent = `Recording ${duration}s — wait for it to finish...`;
+  try {
+    const d = await API.post('/screenrecord', { action: 'start', duration });
+    meta.textContent = `Saved: ${d.path || 'Movies/ocd-record-*.mp4'}`;
+    toast('Screen recording saved on device');
+  } catch (e) { meta.textContent = 'Error: ' + e.message; }
+  btn.disabled = false;
+  btn.textContent = '⏺ Record';
+}
+async function stopScreenRec() {
+  try { await API.post('/screenrecord', { action: 'stop' }); toast('Recording stopped'); }
+  catch (e) { toast(e.message, 'err'); }
+}
+
+/* ═══════════════════════════════════════════════════════
+   Shell
+   ═══════════════════════════════════════════════════════ */
 async function runShell() {
   const cmd = document.getElementById('shellCmd').value.trim();
   const args = document.getElementById('shellArgs').value.trim().split(/\s+/).filter(Boolean);
-  if (!cmd) return toast('Enter command', false);
+  if (!cmd) return toast('Enter command', 'err');
   try {
-    const data = await API.post('/shell', { cmd, args });
-    document.getElementById('shellOutput').textContent = JSON.stringify(data, null, 2);
-  } catch (e) { toast(e.message, false); }
+    const d = await API.post('/shell', { cmd, args });
+    document.getElementById('shellOutput').textContent = JSON.stringify(d, null, 2);
+  } catch (e) { toast(e.message, 'err'); }
 }
 
+/* ═══════════════════════════════════════════════════════
+   Debug & Dump
+   ═══════════════════════════════════════════════════════ */
 let lastDump = null;
 async function loadFullDump() {
   try {
-    const data = await API.get('/debug/dump');
-    lastDump = data.dump;
-    document.getElementById('dumpOutput').textContent = JSON.stringify(data.dump, null, 2);
+    const d = await API.get('/debug/dump');
+    lastDump = d.dump;
+    document.getElementById('dumpOutput').textContent = JSON.stringify(d.dump, null, 2);
     toast('Full dump loaded');
-  } catch (e) { toast(e.message, false); }
+  } catch (e) { toast(e.message, 'err'); }
 }
-
 function downloadDump() {
-  if (!lastDump) return toast('No dump loaded', false);
+  if (!lastDump) return toast('No dump loaded', 'err');
   const blob = new Blob([JSON.stringify(lastDump, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url;
-  a.download = `device-dump-${Date.now()}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
-  toast('Download started');
+  a.href = url; a.download = `device-dump-${Date.now()}.json`; a.click();
+  URL.revokeObjectURL(url); toast('Download started');
 }
-
 async function loadImei() {
   try {
-    const data = await API.get('/debug/imei');
-    document.getElementById('imeiOutput').textContent = JSON.stringify(data.imei, null, 2);
-    // Highlight found IMEIs
-    const imei = data.imei;
-    const found = [];
-    for (const [k, v] of Object.entries(imei)) {
-      if (v && typeof v === 'string' && v.length >= 14 && /^\d+$/.test(v)) found.push({ source: k, value: v });
-    }
-    if (found.length) toast(`Found ${found.length} potential IMEI(s)`, true);
-    else toast('No IMEI found (may need root/ADB)', false);
-  } catch (e) { toast(e.message, false); }
+    const d = await API.get('/debug/imei');
+    document.getElementById('imeiOutput').textContent = JSON.stringify(d.imei, null, 2);
+    const found = Object.entries(d.imei).filter(([, v]) => v && typeof v === 'string' && v.length >= 14 && /^\d+$/.test(v));
+    if (found.length) toast(`Found ${found.length} potential IMEI(s)`);
+    else toast('No IMEI found (may need root/ADB)', 'warn');
+  } catch (e) { toast(e.message, 'err'); }
 }
-
 async function loadLogcat() {
   const lines = document.getElementById('logcatLines').value;
   const filter = document.getElementById('logcatFilter').value;
   let url = `/debug/logcat?lines=${lines}`;
   if (filter) url += `&filter=${encodeURIComponent(filter)}`;
   try {
-    const data = await API.get(url);
-    document.getElementById('logcatOutput').textContent = data.logcat || data.stderr || 'No output';
-  } catch (e) { toast(e.message, false); }
+    const d = await API.get(url);
+    document.getElementById('logcatOutput').textContent = d.logcat || d.stderr || 'No output';
+  } catch (e) { toast(e.message, 'err'); }
 }
-
 async function loadProcesses() {
-  try {
-    const data = await API.get('/debug/processes');
-    document.getElementById('processesOutput').textContent = data.processes || 'No output';
-  } catch (e) { toast(e.message, false); }
+  try { const d = await API.get('/debug/processes'); document.getElementById('processesOutput').textContent = d.processes || 'No output'; }
+  catch (e) { toast(e.message, 'err'); }
 }
-
 async function loadNetstat() {
-  try {
-    const data = await API.get('/debug/netstat');
-    document.getElementById('netstatOutput').textContent = data.netstat || 'No output';
-  } catch (e) { toast(e.message, false); }
+  try { const d = await API.get('/debug/netstat'); document.getElementById('netstatOutput').textContent = d.netstat || 'No output'; }
+  catch (e) { toast(e.message, 'err'); }
 }
-
 async function loadLsof() {
-  try {
-    const data = await API.get('/debug/lsof');
-    document.getElementById('lsofOutput').textContent = data.lsof || 'No output';
-  } catch (e) { toast(e.message, false); }
+  try { const d = await API.get('/debug/lsof'); document.getElementById('lsofOutput').textContent = d.lsof || 'No output'; }
+  catch (e) { toast(e.message, 'err'); }
 }
 
-// Auto-load on Enter in token field
-document.getElementById('token').addEventListener('keypress', e => { if (e.key === 'Enter') testConnection(); });
+/* ═══════════════════════════════════════════════════════
+   Section Enter Hooks
+   ═══════════════════════════════════════════════════════ */
+function onSectionEnter(section) {
+  if (section === 'controls') loadControlStates();
+  if (section === 'dashboard') { startDashTimer(); loadDevice(); }
+  else { stopDashTimer(); }
+}
 
-// Save connection to localStorage
-window.addEventListener('beforeunload', () => {
-  localStorage.setItem('ocd_host', document.getElementById('host').value);
-  localStorage.setItem('ocd_port', document.getElementById('port').value);
+/* ═══════════════════════════════════════════════════════
+   Keyboard Shortcuts
+   ═══════════════════════════════════════════════════════ */
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+  const keys = { '1': 'dashboard', '2': 'controls', '3': 'input', '4': 'screen', '5': 'apps', '6': 'debug', 'r': 'dashboard' };
+  if (keys[e.key]) { navigateTo(keys[e.key]); e.preventDefault(); }
+  if (e.key === 'Escape') document.querySelectorAll('.modal-overlay.active').forEach(m => m.classList.remove('active'));
 });
-window.addEventListener('load', () => {
-  document.getElementById('host').value = localStorage.getItem('ocd_host') || '127.0.0.1';
-  document.getElementById('port').value = localStorage.getItem('ocd_port') || '18790';
+
+/* ═══════════════════════════════════════════════════════
+   Init
+   ═══════════════════════════════════════════════════════ */
+window.addEventListener('load', () => { initConnection(); });
+window.addEventListener('beforeunload', () => {
+  localStorage.setItem('ocd_endpoint', document.getElementById('connEndpoint')?.value || API.base);
 });
 </script>
 </body>

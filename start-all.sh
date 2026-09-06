@@ -1,61 +1,39 @@
 #!/bin/bash
-# One-command starter: OCD daemon + OpenClaw gateway + panel server
-# Usage: bash ~/ocd-control/start-all.sh
+# OCD Control Panel — one-command start
+# Usage: bash start-all.sh
+#   or:  OCD_TOKEN=mysecret bash start-all.sh
 #
-# Start the chat gateway too with a matching daemon token:
-#   OCD_TOKEN=my-secret bash ~/ocd-control/start-all.sh
-# (the android-control plugin must use the same token, or run:
-#   openclaw plugins configure android-control --set token=my-secret
-#   openclawx restart)
+# Starts the daemon + panel server, prints a ready-to-open URL.
 
 set -e
-
 cd "$(dirname "$0")"
 
-# Bind the daemon to all interfaces so the panel is reachable from other devices.
-# Override with OCD_HOST=127.0.0.1 for localhost-only.
 export OCD_HOST="${OCD_HOST:-0.0.0.0}"
+export OCD_PORT="${OCD_PORT:-18790}"
+PANEL_PORT="${PANEL_PORT:-8080}"
 
-echo "╔══════════════════════════════════════════════════════════╗"
-echo "║     OCD Control Panel — Full Startup                     ║"
-echo "╚══════════════════════════════════════════════════════════╝"
+echo ""
+echo "  ╔══════════════════════════════════════════╗"
+echo "  ║   OCD Control Panel — Starting...        ║"
+echo "  ╚══════════════════════════════════════════╝"
 echo ""
 
-# Check Termux:API
-if ! command -v termux-sms-send >/dev/null 2>&1; then
-  echo "⚠️  Termux:API not found. Install for SMS/calls/notifications:"
-  echo "    pkg install termux-api"
-  echo "    (Also install Termux:API app from F-Droid)"
-  echo ""
-fi
+# Kill any previous instances
+pkill -f "node daemon.mjs" 2>/dev/null || true
+pkill -f "http.server $PANEL_PORT" 2>/dev/null || true
+sleep 0.5
 
-# Check storage permission
-if [ ! -d "/storage/emulated/0" ] && [ ! -d "/sdcard" ]; then
-  echo "⚠️  Storage access not granted. Run:"
-  echo "    termux-setup-storage"
-  echo ""
-fi
-
-# Start daemon in background
-echo "🚀 Starting OCD daemon..."
-bash start.sh > /tmp/ocd-daemon.log 2>&1 &
+# Start daemon in background, capture output
+DAEMON_LOG=$(mktemp /tmp/ocd-daemon-XXXX.log)
+bash start.sh > "$DAEMON_LOG" 2>&1 &
 DAEMON_PID=$!
+
+# Wait for daemon to start and write token
 sleep 2
 
-# Extract token from log
-TOKEN=$(grep -o 'token: [^ ]*' /tmp/ocd-daemon.log | cut -d' ' -f2)
+TOKEN=$(grep -oP '(?:token: |token=)\K[^\s]+' "$DAEMON_LOG" | head -1)
 if [ -z "$TOKEN" ]; then
-  TOKEN=$(grep -o '\[OCD\] token: [^ ]*' /tmp/ocd-daemon.log | cut -d' ' -f3)
-fi
-
-# Start OpenClaw gateway (proot) — chat control via the android tool
-echo "🤖 Starting OpenClaw gateway (chat)..."
-if command -v openclawx >/dev/null 2>&1; then
-  openclawx restart > /tmp/ocd-gateway.log 2>&1 &
-  GATEWAY_PID=$!
-else
-  echo "⚠️  openclawx not found; skipping gateway. Chat control will be unavailable."
-  GATEWAY_PID=""
+  TOKEN=$(cat ~/.ocd-token 2>/dev/null | tr -d '[:space:]')
 fi
 
 # Get phone IP
@@ -63,59 +41,51 @@ PHONE_IP=$(ip addr show wlan0 2>/dev/null | grep 'inet ' | head -1 | awk '{print
 if [ -z "$PHONE_IP" ]; then
   PHONE_IP=$(ip route get 1.1.1.1 2>/dev/null | grep -oP 'src \K\S+')
 fi
+if [ -z "$PHONE_IP" ]; then
+  PHONE_IP="127.0.0.1"
+fi
+
+# Start panel HTTP server
+python3 -m http.server "$PANEL_PORT" --directory "$PWD" > /tmp/ocd-panel-server.log 2>&1 &
+PANEL_PID=$!
+
+# Build the auto-connect URL
+PANEL_URL="http://${PHONE_IP}:${PANEL_PORT}/panel.html?api=http://${PHONE_IP}:${OCD_PORT}&token=${TOKEN}"
 
 echo ""
-echo "╔══════════════════════════════════════════════════════════╗"
-echo "║     ✅ SERVICES STARTING                                 ║"
-echo "╠══════════════════════════════════════════════════════════╣"
-if [ -n "$TOKEN" ]; then
-  echo "║  Daemon token: $TOKEN"
-else
-  echo "║  Daemon token: (check /tmp/ocd-daemon.log)"
-fi
-echo "║  Daemon:  http://127.0.0.1:18790"
-if [ -n "$PHONE_IP" ]; then
-  echo "║  Daemon LAN: http://$PHONE_IP:18790"
-fi
-if command -v openclawx >/dev/null 2>&1; then
-  echo "║  Gateway:  http://127.0.0.1:18789   (chat / android tool)"
-  if [ -n "$PHONE_IP" ]; then
-    echo "║  Gateway LAN: http://$PHONE_IP:18789"
-  fi
-fi
-echo "╚══════════════════════════════════════════════════════════╝"
+echo "  ╔══════════════════════════════════════════╗"
+echo "  ║   ✅ OCD Control Panel is ready!         ║"
+echo "  ╠══════════════════════════════════════════╣"
+echo "  ║                                          ║"
+echo "  ║   Open this URL in your browser:         ║"
+echo "  ║                                          ║"
+
+# Print URL - wrapped for readability
+echo "  ║   $PANEL_URL"
+
+echo "  ║                                          ║"
+echo "  ╠══════════════════════════════════════════╣"
+echo "  ║   Token: $TOKEN"
+echo "  ║   Daemon: http://$PHONE_IP:$OCD_PORT"
+echo "  ║   Panel:  http://$PHONE_IP:$PANEL_PORT"
+echo "  ╚══════════════════════════════════════════╝"
 echo ""
-echo "╔══════════════════════════════════════════════════════════╗"
-echo "║     OPEN IN BROWSER:                                     ║"
-echo "╠══════════════════════════════════════════════════════════╣"
-echo "║  On this phone:  http://127.0.0.1:8080/panel.html        ║"
-if [ -n "$PHONE_IP" ]; then
-  echo "║  From laptop:    http://$PHONE_IP:8080/panel.html"
-fi
-echo "║                                                          ║"
-echo "║  Panel login:  Host=127.0.0.1 (or $PHONE_IP)  Port=18790"
-if [ -n "$TOKEN" ]; then
-  echo "║    Token: $TOKEN"
-fi
-echo "╚══════════════════════════════════════════════════════════╝"
+echo "  Copy the URL above and paste it in your browser."
+echo "  The panel will auto-connect — no manual entry needed."
 echo ""
-if [ -n "$TOKEN" ]; then
-  echo "ℹ️  Chat note: the android-control plugin must use the same token."
-  echo "    If chat 401s, run: openclaw plugins configure android-control --set token=$TOKEN && openclawx restart"
-  echo ""
-fi
-echo "Press Ctrl+C to stop all services"
-echo ""
+echo "  Press Ctrl+C to stop all services."
 
 # Cleanup on exit
 cleanup() {
   echo ""
-  echo "Stopping services..."
+  echo "  Stopping services..."
   kill "$DAEMON_PID" 2>/dev/null
-  pkill -f "openclaw gateway" 2>/dev/null
-  pkill -f "http.server 8080" 2>/dev/null
+  kill "$PANEL_PID" 2>/dev/null
+  pkill -f "node daemon.mjs" 2>/dev/null || true
+  pkill -f "http.server $PANEL_PORT" 2>/dev/null || true
+  echo "  Done."
 }
 trap cleanup EXIT INT TERM
 
-# Run panel server (blocks)
-python3 -m http.server 8080
+# Wait for either process to exit
+wait "$DAEMON_PID" "$PANEL_PID" 2>/dev/null

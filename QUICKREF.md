@@ -1,117 +1,79 @@
 # OCD Control Panel — Quick Reference Card
 
-## 🚀 One-Command Start
+## One-Command Start
 ```bash
 bash ~/ocd-control/start-all.sh
 ```
-Shows token, IP, and browser URLs automatically.
+Prints a ready-to-open URL with your token embedded. Just copy-paste into browser.
 
 ---
 
-## 📋 Manual Steps (if needed)
-
-### 1. Start Daemon (phone Termux)
+## Install + Launch (first time)
 ```bash
-bash ~/ocd-control/start.sh
-# COPY THE TOKEN printed (e.g. aBcDeFgHiJkLmNoPqR)
+bash <(curl -fsSL https://raw.githubusercontent.com/danielkinzer-ui/Ocd_control_panel/master/quick-install.sh)
 ```
 
-### 2. Start Panel Server
-```bash
-bash ~/ocd-control/serve-panel.sh 8080
-```
+---
 
-### 3. Open in Browser
-| From | URL |
-|------|-----|
-| Same phone | `http://127.0.0.1:8080/panel.html` |
-| Laptop (LAN) | `http://PHONE_IP:8080/panel.html` |
+## Panel Sections
 
-Find phone IP: `ip addr show wlan0` → `192.168.x.x`
-
-### 4. Connect Panel
-- **Host**: `127.0.0.1` (or phone IP from laptop)
-- **Port**: `18790`
-- **Token**: Paste from step 1
-- Click **Connect**
+| Section | What It Does |
+|---------|-------------|
+| **Dashboard** | Live battery %, network, location, storage — auto-refreshes |
+| **Quick Controls** | Toggle WiFi/BT/Airplane/GPS, volume/brightness sliders, power |
+| **Input** | Tap, Swipe, Text, Key (HOME=3, BACK=4, ENTER=66) |
+| **Device Setup** | Remote developer mode, USB/wireless debugging setup |
+| **Screen** | Live screen mirroring (needs ADB) |
+| **Camera** | Live camera feed, snap photos |
+| **Mic** | Record audio clips |
+| **Apps** | List, Launch, Stop, Uninstall |
+| **Files** | Browse directories |
+| **Comms** | SMS, Call, Notifications, Contacts |
+| **Shell** | Run any Termux command |
+| **Debug** | Full dump, IMEI, logcat, processes, netstat, lsof |
 
 ---
 
-## 🔧 Debug Features (New Tab: "🔧 Debug & Full Dump")
+## Enable Full Features (Wireless Debugging)
 
-| Button | Output |
-|--------|--------|
-| 📦 **Generate Full Device Dump** | Complete JSON: getprop, build, hardware, network, SIM, radio, security, storage, memory, CPU, partitions, mounts, kernel, uptime |
-| ⬇️ **Download JSON** | Saves `device-dump-<timestamp>.json` |
-| 🔍 **Get IMEI/MEID** | Tries service calls, getprops, dumpsys. Highlights valid 15-digit IMEIs |
-| 📋 **Fetch Logcat** | Recent logs (set lines, filter like `*:E` for errors) |
-| 📋 **List Processes** | `ps -A` |
-| 🌐 **Network Connections** | `netstat -tunap` |
-| 📂 **Open Files** | `lsof` |
+**Needed for**: Screenshots, Tap/Swipe/Keys, IMEI
 
----
-
-## ⌨️ Input Keycodes (Input Control → Key tab)
-
-| Key | Code | Key | Code |
-|-----|------|-----|------|
-| HOME | 3 | BACK | 4 |
-| MENU | 82 | ENTER | 66 |
-| DEL | 67 | VOL UP | 24 |
-| VOL DOWN | 25 | POWER | 26 |
-| CAMERA | 27 | SEARCH | 84 |
-| RECENTS | 187 | NOTIFICATION | 83 |
-| QUICK SETTINGS | 221 | | |
-
----
-
-## 🛡️ Enable Full Features (Wireless Debugging)
-
-**Needed for**: Screenshots, Tap/Swipe/Keys, IMEI extraction
-
-1. **Settings → About → Build number** ×7 → Developer mode
-2. **Settings → Developer options → Wireless debugging** → ON
-3. **Pair with pairing code** → note IP:PORT + 6-digit code
-4. In Termux:
+1. Settings → About → Build number ×7 → Developer mode
+2. Settings → Developer options → Wireless debugging → ON
+3. Pair with pairing code → note IP:PORT + 6-digit code
 ```bash
 adb pair 192.168.x.x:PORT   # enter 6-digit code
 adb connect 192.168.x.x:PORT
-OCD_ADB=127.0.0.1:5555 bash ~/ocd-control/start.sh
+OCD_ADB=127.0.0.1:5555 bash ~/ocd-control/start-all.sh
 ```
 
 ---
 
-## 📁 Files
+## Keyboard Shortcuts
 
-```
-~/ocd-control/
-├── daemon.mjs        # Backend (edit for custom endpoints)
-├── panel.html        # Frontend (open in browser)
-├── start.sh          # Start daemon only
-├── serve-panel.sh    # Serve panel only
-├── start-all.sh      # 🎯 Start both + show info
-└── README.md         # Full guide
-```
+| Key | Action |
+|-----|--------|
+| `1` | Dashboard |
+| `2` | Quick Controls |
+| `3` | Input Control |
+| `4` | Live Screen |
+| `5` | Apps |
+| `6` | Debug |
+| `R` | Refresh |
+| `Esc` | Close modal |
 
 ---
 
-## 🆘 Quick Fixes
+## Quick Fixes
 
 | Issue | Fix |
 |-------|-----|
-| "Connect failed" | Check token exact, host IP, port 18790. Test: `curl http://IP:18790/health` |
-| Screenshot/input/IMEI fails | Enable Wireless Debugging + `OCD_ADB=127.0.0.1:5555` |
-| "Permission denied" | Some shell cmds need root. Try `su -c "cmd"` if rooted |
-| Panel won't load | Check `serve-panel.sh` running. Try `http://127.0.0.1:8080/panel.html` on phone |
+| "Connect failed" | Check token, IP, port 18790. Test: `curl http://IP:18790/health` |
+| Screenshot/input fails | Enable Wireless Debugging + `OCD_ADB=127.0.0.1:5555` |
+| Panel won't load | Check `python3 -m http.server 8080` is running |
 
 ---
 
-## 🔐 Security
-- **Token = full phone control** — keep secret
-- Default binds to localhost only (127.0.0.1)
-- For LAN: edit `daemon.mjs` line 385 → `"0.0.0.0"`
-- **Never port-forward 18790 to internet** — use Tailscale/VPN/SSH tunnel
-
----
-
-**Save this card** — run `cat ~/ocd-control/QUICKREF.md` anytime!
+## Security
+- Token = full phone control — keep secret
+- Never port-forward 18790 to internet — use VPN/Tailscale

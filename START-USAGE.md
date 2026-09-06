@@ -52,9 +52,13 @@ between the pieces). The web panel needs **no** external key.
 
 **One command (daemon + gateway + panel):**
 ```bash
-bash ~/ocd-control/start-all.sh
-# optional, stable chat token: OCD_TOKEN=my-secret bash ~/ocd-control/start-all.sh
+ocd
+# or: bash ~/ocd-control/start-all.sh
+# optional, stable chat token: OCD_TOKEN=my-secret ocd
 ```
+
+`ocd` auto-installs if missing, then prints a ready-to-open panel URL with the
+token embedded (`panel.html?api=...&token=...`) — the panel auto-connects.
 
 Or start each piece separately (Termux + proot):
 
@@ -94,10 +98,11 @@ or use `adb forward` / Tailscale from the client (see each section).
 
 **A. Web panel (no install, fastest):**
 ```bash
-# Same WiFi / hotspot as phone — open directly:
-open http://<phone-ip>:8080/panel.html
+# Same WiFi / hotspot as phone — open the URL printed by `ocd`/`start-all.sh`
+# (it carries ?api=...&token=... so the panel auto-connects):
+open "http://<phone-ip>:8080/panel.html?api=http://<phone-ip>:18790&token=<TOKEN>"
 # Or tunnel over USB (Wireless Debugging also works):
-adb forward tcp:8080 tcp:8080 && open http://127.0.0.1:8080/panel.html
+adb forward tcp:8080 tcp:8080 && adb forward tcp:18790 tcp:18790
 ```
 
 **B. Chat control (Path 1 — OpenClaw client → `android` tool):**
