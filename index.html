@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>OCD Control Panel — Launch</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: #11131a; color: #e6e6e6; min-height: 100vh;
+    display: flex; align-items: center; justify-content: center; padding: 24px;
+  }
+  .card {
+    width: 100%; max-width: 460px; background: #1b1e27; border: 1px solid #2c3140;
+    border-radius: 16px; padding: 28px; text-align: center;
+    box-shadow: 0 12px 40px rgba(0,0,0,.4);
+  }
+  h1 { font-size: 22px; margin: 0 0 6px; }
+  p.sub { color: #9aa3b2; margin: 0 0 22px; font-size: 14px; }
+  .btn {
+    display: block; width: 100%; padding: 16px; font-size: 17px; font-weight: 600;
+    border: none; border-radius: 12px; cursor: pointer; text-decoration: none;
+    background: linear-gradient(135deg,#5b8cff,#7b5bff); color: #fff; margin-bottom: 14px;
+  }
+  .btn:active { transform: translateY(1px); }
+  .btn.secondary { background: #2c3140; color: #cfd6e4; font-size: 14px; padding: 12px; }
+  .status { font-size: 13px; color: #9aa3b2; margin-top: 10px; min-height: 18px; }
+  .row { display: flex; gap: 8px; }
+  .row .btn { margin-bottom: 0; }
+  input {
+    width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #2c3140;
+    background: #11131a; color: #e6e6e6; margin-bottom: 12px; font-size: 14px;
+  }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>📱 OCD Virtual Phone</h1>
+    <p class="sub">Your live Android, reachable from anywhere — no physical phone needed.</p>
+
+    <button id="launch" class="btn">▶ Launch Virtual Phone</button>
+
+    <div id="manual" class="hidden">
+      <input id="api" placeholder="Endpoint URL (https://…)" />
+      <input id="tok" placeholder="Bearer Token" type="password" />
+      <button id="go" class="btn secondary">Connect</button>
+    </div>
+
+    <div class="status" id="status">Loading connection info…</div>
+  </div>
+
+<script>
+  const status = document.getElementById('status');
+
+  function go(api, token) {
+    const u = new URL('panel.html', location.href);
+    if (api) u.searchParams.set('api', api);
+    if (token) u.searchParams.set('token', token);
+    location.href = u.toString();
+  }
+
+  async function init() {
+    try {
+      const res = await fetch('virtual-phone.json', { cache: 'no-store' });
+      if (!res.ok) throw new Error('no config');
+      const cfg = await res.json();
+      const api = (cfg.api || '').replace(/\/+$/, '');
+      const token = cfg.token || '';
+      if (!api || api.includes('REPLACE')) {
+        status.textContent = 'Set "api" in virtual-phone.json, then redeploy Pages.';
+        document.getElementById('manual').classList.remove('hidden');
+        return;
+      }
+      status.textContent = 'Ready — tap Launch.';
+      document.getElementById('launch').onclick = () => go(api, token);
+    } catch (e) {
+      status.textContent = 'Could not load virtual-phone.json — enter manually.';
+      document.getElementById('manual').classList.remove('hidden');
+    }
+  }
+
+  document.getElementById('go').onclick = () => {
+    const api = document.getElementById('api').value.trim();
+    const tok = document.getElementById('tok').value.trim();
+    if (!api) return (status.textContent = 'Enter the endpoint URL.');
+    go(api, tok);
+  };
+
+  init();
+</script>
+</body>
+</html>

@@ -1,0 +1,71 @@
+# Real, live Android phone in the cloud (no simulation -- a genuine AOSP emulator).
+#
+# Services:
+#   emulator  a real Android emulator (budtmo/docker-android) producing real-time data
+#   ocd       the OCD control daemon, driving the emulator over adb -> exposes :18790
+#   tunnel    an HTTPS tunnel (Cloudflare) so your GitHub Pages panel can reach :18790
+#
+# Requirements:
+#   * A host with KVM (check: ls -l /dev/kvm). Without KVM the emulator will not boot.
+#   * Docker + docker compose.
+#
+# Usage:
+#   OCD_TOKEN=$(openssl rand -hex 18) \
+#   OCD_CORS_ORIGIN=https://YOURUSER.github.io \
+#   docker compose up -d
+#
+#   # Quick tunnel (ephemeral URL, no Cloudflare account):
+#   docker compose up -d
+#   docker compose logs tunnel     # shows the https://*.trycloudflare.com URL
+#
+#   # Stable tunnel (Cloudflare account):
+#   CLOUDFLARED_TOKEN=eyJ... docker compose --profile cloudflared up -d
+#
+# Then open: https://YOURUSER.github.io/Ocd_control_panel/panel.html?api=<TUNNEL_URL>
+
+services:
+  emulator:
+    image: budtmo/docker-android:emulator_13.0
+    privileged: true            # required for KVM passthrough
+    environment:
+      DEVICE: "Samsung Galaxy S10"
+      WEB_VNC: "true"           # expose a browser-viewable screen on :6080
+    ports:
+      - "5555:5555"             # adb (also reachable by the ocd service as emulator:5555)
+      - "6080:6080"             # optional live web view of the emulator
+    healthcheck:
+      test: ["CMD-SHELL", "adb -s emulator:5555 get-state | grep -q device"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 120s
+
+  ocd:
+    build: .
+    depends_on:
+      emulator:
+        condition: service_started
+    environment:
+      OCD_ADB: "emulator:5555"
+      OCD_HOST: "0.0.0.0"
+      OCD_PORT: "18790"
+      OCD_TOKEN: "${OCD_TOKEN:?set OCD_TOKEN (e.g. openssl rand -hex 18)}"
+      OCD_CORS_ORIGIN: "${OCD_CORS_ORIGIN:-*}"
+      OCD_TOKEN_QUERY: "1"
+      EMULATOR_WAIT: "240"
+    expose:
+      - "18790"
+
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    depends_on:
+      - ocd
+    command: ["tunnel", "--url", "http://ocd:18790"]
+    profiles: ["cloudflared"]
+
+  tunnel-stable:
+    image: cloudflare/cloudflared:latest
+    depends_on:
+      - ocd
+    command: ["tunnel", "--no-autoupdate", "run", "--token", "${CLOUDFLARED_TOKEN}"]
+    profiles: ["cloudflared-stable"]

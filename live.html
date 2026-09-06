@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OCD Live View</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0a0e12; color: #d7e3ea; font-family: system-ui, sans-serif; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 12px; }
+  h1 { font-size: 1.1rem; margin-bottom: 8px; }
+  h1 .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #666; margin-right: 8px; }
+  h1.live .dot { background: #3ddc84; box-shadow: 0 0 8px #3ddc84; animation: pulse 1.5s infinite; }
+  @keyframes pulse { 50% { opacity: .4; } }
+  #controls { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; justify-content: center; }
+  button, select { background: #16212b; color: #d7e3ea; border: 1px solid #2a3b49; border-radius: 6px; padding: 8px 14px; font-size: .9rem; }
+  button:active { background: #1e2e3d; }
+  button.go { background: #0d3b26; border-color: #3ddc84; }
+  button.stop { background: #3d1515; border-color: #e5534b; }
+  #status { font-size: .8rem; color: #8b9aa7; margin-bottom: 8px; min-height: 1.2em; }
+  #view { max-width: 100%; max-height: 75vh; border: 1px solid #2a3b49; border-radius: 8px; background: #051014; }
+  #view:empty::after { content: 'Press Start'; display: block; padding: 60px; color: #4a5a68; }
+</style>
+</head>
+<body>
+<h1 id="title"><span class="dot"></span>OCD Live View</h1>
+<div id="controls">
+  <button id="toggle" class="go" onclick="toggle()">▶ Start</button>
+  <button onclick="snap()">📸 Snap</button>
+  <select id="interval">
+    <option value="10">10s</option>
+    <option value="15" selected>15s</option>
+    <option value="30">30s</option>
+    <option value="60">60s</option>
+  </select>
+</div>
+<div id="status">idle</div>
+<img id="view" alt="">
+
+<script>
+const params = new URLSearchParams(location.search);
+const API_BASE = (params.get('api') || 'http://127.0.0.1:18790').replace(/\/+$/, '');
+const TOKEN = params.get('token') || '';
+let running = false, timer = null, busy = false;
+
+const $ = id => document.getElementById(id);
+const status = msg => { $('status').textContent = msg; };
+
+async function snap() {
+  if (busy) return;
+  busy = true;
+  status('capturing…');
+  try {
+    const res = await fetch(`${API_BASE}/screenshot`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-OCD-Token': TOKEN },
+      body: JSON.stringify({ path: `Pictures/ocd-live-${Date.now()}.png`, b64: true })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    if (data.imageBase64) $('view').src = `data:image/png;base64,${data.imageBase64}`;
+    status(`${new Date().toLocaleTimeString()} — ${(data.size / 1048576).toFixed(1)} MB`);
+  } catch (e) {
+    status('error: ' + e.message);
+  }
+  busy = false;
+  if (running) timer = setTimeout(snap, $('interval').value * 1000);
+}
+
+function toggle() {
+  running = !running;
+  $('toggle').textContent = running ? '⏹ Stop' : '▶ Start';
+  $('toggle').className = running ? 'stop' : 'go';
+  $('title').className = running ? 'live' : '';
+  clearTimeout(timer);
+  if (running) snap();
+  else status('stopped');
+}
+</script>
+</body>
+</html>
