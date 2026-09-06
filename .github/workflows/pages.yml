@@ -3,7 +3,7 @@ name: Deploy panel to GitHub Pages
 on:
   push:
     branches: [master]
-    paths: ['panel.html', 'setup.html', 'index.html', 'virtual-phone.json', '.nojekyll', '.github/workflows/pages.yml']
+    paths: ['panel.html', 'setup.html', 'index.html', 'live.html', 'virtual-phone.json', '.nojekyll', '.github/workflows/pages.yml']
   workflow_dispatch:
 
 permissions:

@@ -23,6 +23,7 @@
 </head>
 <body>
 <h1 id="title"><span class="dot"></span>OCD Live View</h1>
+<div style="margin-bottom:10px;font-size:.8rem;"><a id="panelLink" href="panel.html" style="color:#6ea8ff;">← Full panel</a></div>
 <div id="controls">
   <button id="toggle" class="go" onclick="toggle()">▶ Start</button>
   <button onclick="snap()">📸 Snap</button>
@@ -44,6 +45,9 @@ let running = false, timer = null, busy = false;
 
 const $ = id => document.getElementById(id);
 const status = msg => { $('status').textContent = msg; };
+// Keep endpoint context when jumping to the full panel.
+$('panelLink').href = 'panel.html' + location.search;
+if (!TOKEN) status('idle — pass ?api=...&token=... or open from the panel');
 
 async function snap() {
   if (busy) return;
